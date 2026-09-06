@@ -139,12 +139,12 @@ namespace _Code.Manager
                 return string.Empty;
 
             if (_stageDefinition.GoalType == StageGoalType.Cheese)
-                return $"{StageLabel} {_stageDefinition.Number} / {GoalLabel} {CheeseLabel} {TargetCheeseCount - RemainingCheeseCount}/{TargetCheeseCount} / {PlacementLabel} {RemainingPlacementCount}";
+                return $"{StageLabel} {_stageDefinition.Number}\n{GoalLabel} : {CheeseLabel} {TargetCheeseCount - RemainingCheeseCount}/{TargetCheeseCount} {RemoveLabel}\n{PlacementLabel} : {RemainingPlacementCount}";
 
             if (_stageDefinition.GoalType == StageGoalType.CatRemoval)
-                return $"{StageLabel} {_stageDefinition.Number} / {GoalLabel} {GetTargetCatLabel()} {RemoveLabel} {_removedTargetCatCount}/{TargetCatRemovalCount}";
+                return $"{StageLabel} {_stageDefinition.Number}\n{GoalLabel} : {GetTargetCatLabel()} {_removedTargetCatCount}/{TargetCatRemovalCount} {RemoveLabel}";
 
-            return $"{StageLabel} {_stageDefinition.Number} / {GoalLabel} {_stageDefinition.TargetScore}{ScoreSuffix}";
+            return $"{StageLabel} {_stageDefinition.Number}\n{GoalLabel} : {_stageDefinition.TargetScore}{ScoreSuffix} \uB2EC\uC131";
         }
 
         public string GetClearMessage()
