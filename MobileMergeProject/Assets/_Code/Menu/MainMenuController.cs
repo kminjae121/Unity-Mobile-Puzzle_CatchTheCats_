@@ -17,6 +17,7 @@ namespace _Code.Menu
         [SerializeField] private Button startBtn;
         [SerializeField] private Button stageBtn;
         [SerializeField] private Button googleLoginBtn;
+        [SerializeField] private TextMeshProUGUI googleAccountNameTxt;
         [SerializeField] private JsonManager jsonManager;
         [SerializeField] private ServerScoreClient serverScoreClient;
         [SerializeField] private GoogleLoginManager googleLoginManager;
@@ -44,16 +45,20 @@ namespace _Code.Menu
             if (googleSignInTokenProvider == null)
                 googleSignInTokenProvider = GetComponent<GoogleSignInTokenProvider>();
 
+            ResolveGoogleLoginUiReferences();
+
             if (googleLoginManager != null)
                 googleLoginManager.LoggedIn += HandleLoggedIn;
 
             UpdateGameStartState();
+            UpdateGoogleLoginUi();
             RefreshPlayerData();
         }
 
         private void Start()
         {
             UpdateGameStartState();
+            UpdateGoogleLoginUi();
         }
 
         private void OnDestroy()
@@ -179,6 +184,7 @@ namespace _Code.Menu
         private void HandleLoggedIn()
         {
             UpdateGameStartState();
+            UpdateGoogleLoginUi();
             RefreshPlayerData();
         }
 
@@ -200,6 +206,37 @@ namespace _Code.Menu
 
             if (stageBtn != null)
                 stageBtn.interactable = canStart;
+        }
+
+        private void ResolveGoogleLoginUiReferences()
+        {
+            if (googleAccountNameTxt != null || googleLoginBtn == null)
+                return;
+
+            Transform accountNameTransform = googleLoginBtn.transform.parent.Find("GoogleAccountNameTxt");
+
+            if (accountNameTransform != null)
+                googleAccountNameTxt = accountNameTransform.GetComponent<TextMeshProUGUI>();
+        }
+
+        private void UpdateGoogleLoginUi()
+        {
+            bool isSignedIn = PlayerIdProvider.IsSignedIn;
+
+            if (googleLoginBtn != null)
+                googleLoginBtn.gameObject.SetActive(!isSignedIn);
+
+            if (googleAccountNameTxt == null)
+                return;
+
+            string accountName = googleLoginManager != null
+                ? googleLoginManager.CurrentAccountName
+                : string.Empty;
+
+            googleAccountNameTxt.text = !string.IsNullOrWhiteSpace(accountName)
+                ? accountName
+                : "\uB85C\uADF8\uC778\uB428";
+            googleAccountNameTxt.gameObject.SetActive(isSignedIn);
         }
     }
 }

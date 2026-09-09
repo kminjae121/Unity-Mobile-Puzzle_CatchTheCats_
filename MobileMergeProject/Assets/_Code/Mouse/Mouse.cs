@@ -18,8 +18,9 @@ namespace _Code.Mouse
         }
 
         [SerializeField] private Corner _corner = Corner.TopLeft;
-        [SerializeField, Min(0f), FormerlySerializedAs("_cornerPadding")] private float _cornerHorizontalPadding = 0.84f;
-        [SerializeField, Min(0f)] private float _cornerVerticalPadding = 0.84f;
+        [SerializeField, Min(0f), FormerlySerializedAs("_cornerPadding")] private float _cornerHorizontalPadding = 1.1f;
+        [SerializeField, Min(0f)] private float _cornerVerticalPadding = 1f;
+        [SerializeField] private float _positionXOffset;
         [SerializeField, FormerlySerializedAs("_cushionCenterYOffset")] private float _positionYOffset;
         [SerializeField] private SpriteRenderer _renderer;
         [SerializeField, Min(0.01f)] private float _moveDuration = 0.2f;
@@ -199,8 +200,8 @@ namespace _Code.Mouse
 
             Vector3 bottomLeft = blockField.GetWorldPosition(Vector2Int.zero);
             Vector3 topRight = blockField.GetWorldPosition(new Vector2Int(blockField.Width - 1, blockField.Height - 1));
-            float left = bottomLeft.x - _cornerHorizontalPadding;
-            float right = topRight.x + _cornerHorizontalPadding;
+            float left = bottomLeft.x - _cornerHorizontalPadding + _positionXOffset;
+            float right = topRight.x + _cornerHorizontalPadding + _positionXOffset;
             float bottom = bottomLeft.y - _cornerVerticalPadding + _positionYOffset;
             float top = topRight.y + _cornerVerticalPadding + _positionYOffset;
             Vector3 position = transform.position;

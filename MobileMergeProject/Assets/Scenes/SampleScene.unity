@@ -1220,9 +1220,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::_Code.Mouse.Mouse
   _corner: 0
-  _cornerPadding: 0.78
-  _cushionCenterYOffset: 0.18
+  _cornerHorizontalPadding: 1.1
+  _cornerVerticalPadding: 1
+  _positionXOffset: 0
+  _positionYOffset: 0
   _renderer: {fileID: 1065932848}
+  _moveDuration: 0.4
+  _moveAnimationFrameDuration: 0.08
+  _idleAnimationFrameDuration: 0.16
 --- !u!1 &1280844719
 GameObject:
   m_ObjectHideFlags: 0

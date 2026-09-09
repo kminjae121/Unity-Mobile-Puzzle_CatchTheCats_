@@ -4120,8 +4120,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::_Code.Mouse.Mouse
   _corner: 0
-  _cornerHorizontalPadding: 0.84
-  _cornerVerticalPadding: 0.84
+  _cornerHorizontalPadding: 1.1
+  _cornerVerticalPadding: 1
+  _positionXOffset: 0
   _positionYOffset: 0
   _renderer: {fileID: 340847341}
   _moveDuration: 0.4
@@ -20219,8 +20220,8 @@ Transform:
   m_GameObject: {fileID: 2032568772}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.06000018, z: 0}
-  m_LocalScale: {x: 3.9, y: 3.9, z: 1}
+  m_LocalPosition: {x: 0.23, y: -0.24, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1000607585}
@@ -20274,12 +20275,12 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 5
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: f1da05ed494c4dfa84958a0c39d9d288, type: 3}
+  m_Sprite: {fileID: -7631797339561201330, guid: f1da05ed494c4dfa84958a0c39d9d288, type: 3}
   m_Color: {r: 0.9, g: 0.84, b: 0.74, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 12.54, y: 12.54}
+  m_Size: {x: 9.839999, y: 9.94}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1

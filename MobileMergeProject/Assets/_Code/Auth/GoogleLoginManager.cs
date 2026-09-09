@@ -8,15 +8,20 @@ namespace _Code.Auth
 {
     public sealed class GoogleLoginManager : MonoBehaviour
     {
+        private const string AccountNameKey = "CatchTheCats.GoogleAccountName";
+
         [SerializeField] private GoogleAuthClient authClient;
         [SerializeField] private JsonManager jsonManager;
         [SerializeField] private ServerScoreClient serverScoreClient;
         [SerializeField] private TextMeshProUGUI statusText;
 
         public event Action LoggedIn;
+        public string CurrentAccountName { get; private set; } = string.Empty;
 
         private void Awake()
         {
+            CurrentAccountName = PlayerPrefs.GetString(AccountNameKey, string.Empty);
+
             if (authClient == null)
                 authClient = GetComponent<GoogleAuthClient>();
 
@@ -45,12 +50,18 @@ namespace _Code.Auth
         public void SignOutLocal()
         {
             PlayerIdProvider.ClearAuthenticatedPlayerId();
+            CurrentAccountName = string.Empty;
+            PlayerPrefs.DeleteKey(AccountNameKey);
+            PlayerPrefs.Save();
             SetStatus("\uB85C\uADF8\uC544\uC6C3\uB428");
         }
 
         private void ApplyLoginResult(GoogleAuthClient.GoogleLoginResult result)
         {
             PlayerIdProvider.SetAuthenticatedPlayerId(result.PlayerId);
+            CurrentAccountName = ResolveAccountName(result);
+            PlayerPrefs.SetString(AccountNameKey, CurrentAccountName);
+            PlayerPrefs.Save();
 
             if (jsonManager != null && result.HasPlayerData)
             {
@@ -75,6 +86,17 @@ namespace _Code.Auth
         {
             if (statusText != null)
                 statusText.text = message;
+        }
+
+        private static string ResolveAccountName(GoogleAuthClient.GoogleLoginResult result)
+        {
+            if (!string.IsNullOrWhiteSpace(result.DisplayName))
+                return result.DisplayName;
+
+            if (!string.IsNullOrWhiteSpace(result.Email))
+                return result.Email;
+
+            return result.PlayerId;
         }
     }
 }
