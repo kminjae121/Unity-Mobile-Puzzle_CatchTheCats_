@@ -40,6 +40,8 @@ namespace _Code.Manager
         private readonly List<Vector3> _placementTargetPositions = new List<Vector3>(9);
 
         private GameObject _root;
+        private GameObject _dialoguePanel;
+        private GameObject _mousePortrait;
         private RectTransform _rootRect;
         private RectTransform _guideRootRect;
         private Image _guideShaft;
@@ -48,12 +50,13 @@ namespace _Code.Manager
         private TextMeshProUGUI _titleText;
         private TextMeshProUGUI _bodyText;
         private TextMeshProUGUI _progressText;
-        private TextMeshProUGUI _nextButtonText;
-        private Button _nextButton;
+        private TextMeshProUGUI _tapHintText;
+        private Button _tapAdvanceButton;
         private Button _closeButton;
         private int _stepIndex;
         private bool _isRunning;
         private bool _isManualRun;
+        private bool _isMissionActive;
         private bool _guideVisible;
         private Vector2 _guideStartLocal;
         private Vector2 _guideEndLocal;
@@ -62,8 +65,11 @@ namespace _Code.Manager
         private BlockPiece[] _pieces;
         private Camera _worldCamera;
         private Sprite _guidePointerSprite;
+        private Sprite _speechBubbleSprite;
+        private Texture2D _speechBubbleTexture;
 
         public bool HasPriorityMessage => _isRunning;
+        public bool IsGameplayInputLocked => _isRunning && !_isMissionActive;
 
         private void Awake()
         {
@@ -124,7 +130,7 @@ namespace _Code.Manager
 
         public void NotifyBoardShiftSucceeded(Vector2Int direction)
         {
-            if (!_isRunning || CurrentStep.Kind != StepKind.WaitForShift)
+            if (!_isRunning || !_isMissionActive || CurrentStep.Kind != StepKind.WaitForShift)
                 return;
 
             direction = NormalizeDirection(direction);
@@ -141,7 +147,7 @@ namespace _Code.Manager
 
         public void NotifyBoardShiftFailed(Vector2Int direction)
         {
-            if (!_isRunning || CurrentStep.Kind != StepKind.WaitForShift)
+            if (!_isRunning || !_isMissionActive || CurrentStep.Kind != StepKind.WaitForShift)
                 return;
 
             SetTemporaryHint("그쪽 쥐구멍으로는 갈 수 없어요. 화살표 방향으로 다시 밀어봐요.");
@@ -150,7 +156,7 @@ namespace _Code.Manager
 
         public void NotifyPiecePlaced()
         {
-            if (!_isRunning || CurrentStep.Kind != StepKind.WaitForPiecePlaced)
+            if (!_isRunning || !_isMissionActive || CurrentStep.Kind != StepKind.WaitForPiecePlaced)
                 return;
 
             AdvanceStep();
@@ -161,7 +167,7 @@ namespace _Code.Manager
             if (!_isRunning || _steps.Count == 0)
                 return true;
 
-            return CurrentStep.Kind == StepKind.WaitForShift;
+            return !IsGameplayInputLocked && CurrentStep.Kind == StepKind.WaitForShift;
         }
 
         public bool CanShiftBoard(Vector2Int direction)
@@ -169,7 +175,8 @@ namespace _Code.Manager
             if (!_isRunning || _steps.Count == 0)
                 return true;
 
-            return CurrentStep.Kind == StepKind.WaitForShift &&
+            return !IsGameplayInputLocked &&
+                   CurrentStep.Kind == StepKind.WaitForShift &&
                    NormalizeDirection(direction) == CurrentStep.Direction;
         }
 
@@ -178,14 +185,15 @@ namespace _Code.Manager
             if (!_isRunning || _steps.Count == 0)
                 return true;
 
-            return CurrentStep.Kind == StepKind.WaitForPiecePlaced &&
+            return !IsGameplayInputLocked &&
+                   CurrentStep.Kind == StepKind.WaitForPiecePlaced &&
                    piece != null &&
                    !piece.IsPlaced;
         }
 
         public void NotifyBoardShiftBlocked(Vector2Int direction)
         {
-            if (!_isRunning || _steps.Count == 0)
+            if (!_isRunning || !_isMissionActive || _steps.Count == 0)
                 return;
 
             SetTemporaryHint(GetCurrentActionHint());
@@ -194,7 +202,7 @@ namespace _Code.Manager
 
         public void NotifyPieceInteractionBlocked()
         {
-            if (!_isRunning || _steps.Count == 0)
+            if (!_isRunning || !_isMissionActive || _steps.Count == 0)
                 return;
 
             SetTemporaryHint(GetCurrentActionHint());
@@ -264,10 +272,12 @@ namespace _Code.Manager
                 return;
 
             TutorialStep step = CurrentStep;
+            _isMissionActive = false;
             _root.SetActive(true);
+            SetDialogueVisible(true);
 
             if (_titleText != null)
-                _titleText.text = step.Title;
+                _titleText.text = $"쥐 · {step.Title}";
 
             if (_bodyText != null)
                 _bodyText.text = step.Body;
@@ -275,16 +285,61 @@ namespace _Code.Manager
             if (_progressText != null)
                 _progressText.text = $"{_stepIndex + 1}/{_steps.Count}";
 
-            if (_nextButton != null)
-                _nextButton.gameObject.SetActive(step.Kind == StepKind.Message || step.Kind == StepKind.Finish);
+            if (_tapAdvanceButton != null)
+                _tapAdvanceButton.gameObject.SetActive(true);
 
-            if (_nextButtonText != null)
-                _nextButtonText.text = step.Kind == StepKind.Finish ? "끝내기" : "다음";
+            if (_tapHintText != null)
+            {
+                _tapHintText.gameObject.SetActive(true);
+                _tapHintText.text = GetTapHint(step.Kind);
+            }
 
             if (messageText != null)
                 messageText.text = step.ShortMessage;
 
             RefreshGuide();
+        }
+
+        private void HandleDialogueTapped()
+        {
+            if (!_isRunning)
+                return;
+
+            StepKind stepKind = CurrentStep.Kind;
+            if (stepKind != StepKind.WaitForShift && stepKind != StepKind.WaitForPiecePlaced)
+            {
+                AdvanceStep();
+                return;
+            }
+
+            _isMissionActive = true;
+            SetDialogueVisible(false);
+            ClearMessage();
+
+            if (_tapAdvanceButton != null)
+                _tapAdvanceButton.gameObject.SetActive(false);
+
+            RefreshGuide();
+        }
+
+        private void SetDialogueVisible(bool visible)
+        {
+            if (_dialoguePanel != null)
+                _dialoguePanel.SetActive(visible);
+
+            if (_mousePortrait != null)
+                _mousePortrait.SetActive(visible);
+        }
+
+        private static string GetTapHint(StepKind stepKind)
+        {
+            if (stepKind == StepKind.Finish)
+                return "터치해서 끝내기";
+
+            if (stepKind == StepKind.WaitForShift || stepKind == StepKind.WaitForPiecePlaced)
+                return "터치해서 임무 시작";
+
+            return "터치해서 계속";
         }
 
         private void SetTemporaryHint(string hint)
@@ -307,13 +362,15 @@ namespace _Code.Manager
                 return $"{DirectionToKorean(step.Direction)} 방향으로만 밀어볼게요.";
 
             if (step.Kind == StepKind.Finish)
-                return "끝내기 버튼을 눌러 튜토리얼을 마무리해요.";
+                return "화면을 터치해 튜토리얼을 마무리해요.";
 
-            return "다음 버튼을 눌러볼게요.";
+            return "화면을 터치해서 다음 설명을 볼게요.";
         }
 
         private void HideView()
         {
+            _isMissionActive = false;
+
             if (_root != null)
                 _root.SetActive(false);
 
@@ -345,42 +402,99 @@ namespace _Code.Manager
             _rootRect.offsetMin = Vector2.zero;
             _rootRect.offsetMax = Vector2.zero;
 
+            _tapAdvanceButton = CreateTapAdvanceArea(_rootRect);
+            _tapAdvanceButton.onClick.AddListener(HandleDialogueTapped);
+
             CreateGuideView(_rootRect);
 
             GameObject panelObject = new GameObject("TutorialPanel", typeof(RectTransform), typeof(Image), typeof(Outline));
+            _dialoguePanel = panelObject;
             RectTransform panelRect = panelObject.GetComponent<RectTransform>();
             panelRect.SetParent(_rootRect, false);
-            panelRect.anchorMin = new Vector2(0.08f, 0.76f);
-            panelRect.anchorMax = new Vector2(0.92f, 0.9f);
+            panelRect.anchorMin = new Vector2(0.16f, 0.045f);
+            panelRect.anchorMax = new Vector2(0.96f, 0.3f);
             panelRect.offsetMin = Vector2.zero;
             panelRect.offsetMax = Vector2.zero;
 
             Image panelImage = panelObject.GetComponent<Image>();
             panelImage.color = panelColor;
             panelImage.raycastTarget = false;
+            panelImage.sprite = GetSpeechBubbleSprite();
+            panelImage.type = Image.Type.Sliced;
 
             Outline panelOutline = panelObject.GetComponent<Outline>();
             panelOutline.effectColor = panelOutlineColor;
             panelOutline.effectDistance = new Vector2(4f, -4f);
 
-            _titleText = CreateText(panelRect, "TutorialTitleTxt", new Vector2(0.05f, 0.56f), new Vector2(0.66f, 0.92f), 42f, titleColor, TextAlignmentOptions.Left);
-            _bodyText = CreateText(panelRect, "TutorialBodyTxt", new Vector2(0.05f, 0.2f), new Vector2(0.78f, 0.58f), 34f, bodyColor, TextAlignmentOptions.Left);
-            _progressText = CreateText(panelRect, "TutorialProgressTxt", new Vector2(0.05f, 0.03f), new Vector2(0.28f, 0.18f), 24f, bodyColor, TextAlignmentOptions.Left);
+            CreateSpeechBubbleTail(panelRect);
+            _titleText = CreateText(panelRect, "TutorialTitleTxt", new Vector2(0.08f, 0.7f), new Vector2(0.82f, 0.94f), 60f, titleColor, TextAlignmentOptions.Left);
+            _bodyText = CreateText(panelRect, "TutorialBodyTxt", new Vector2(0.08f, 0.24f), new Vector2(0.88f, 0.72f), 55f, bodyColor, TextAlignmentOptions.Left);
+            _progressText = CreateText(panelRect, "TutorialProgressTxt", new Vector2(0.08f, 0.05f), new Vector2(0.28f, 0.22f), 28f, bodyColor, TextAlignmentOptions.Left);
+            _tapHintText = CreateText(panelRect, "TutorialTapHintTxt", new Vector2(0.52f, 0.05f), new Vector2(0.88f, 0.22f), 28f, titleColor, TextAlignmentOptions.Right);
 
-            _nextButton = CreateButton(panelRect, "TutorialNextButton", new Vector2(0.85f, 0.35f), new Vector2(0.96f, 0.52f), "다음");
-            _nextButton.onClick.AddListener(AdvanceStep);
-            _nextButtonText = _nextButton.GetComponentInChildren<TextMeshProUGUI>();
-            if (_nextButtonText != null)
-            {
-                _nextButtonText.fontSize = 28f;
-                _nextButtonText.fontSizeMax = 28f;
-                _nextButtonText.fontSizeMin = 16f;
-            }
-
-            _closeButton = CreateButton(panelRect, "TutorialCloseButton", new Vector2(0.88f, 0.58f), new Vector2(0.96f, 0.88f), "X");
+            _closeButton = CreateButton(panelRect, "TutorialCloseButton", new Vector2(0.89f, 0.73f), new Vector2(0.97f, 0.93f), "X");
             _closeButton.onClick.AddListener(Close);
 
+            CreateMousePortrait(_rootRect);
+
             HideView();
+        }
+
+        private Button CreateTapAdvanceArea(RectTransform parent)
+        {
+            GameObject tapObject = new GameObject("TutorialTapAdvanceArea", typeof(RectTransform), typeof(Image), typeof(Button));
+            RectTransform tapRect = tapObject.GetComponent<RectTransform>();
+            tapRect.SetParent(parent, false);
+            tapRect.anchorMin = Vector2.zero;
+            tapRect.anchorMax = Vector2.one;
+            tapRect.offsetMin = Vector2.zero;
+            tapRect.offsetMax = Vector2.zero;
+
+            Image tapImage = tapObject.GetComponent<Image>();
+            tapImage.color = Color.clear;
+            tapImage.raycastTarget = true;
+
+            Button button = tapObject.GetComponent<Button>();
+            button.transition = Selectable.Transition.None;
+            return button;
+        }
+
+        private void CreateMousePortrait(RectTransform parent)
+        {
+            GameObject portraitObject = new GameObject("TutorialMousePortrait", typeof(RectTransform), typeof(Image));
+            _mousePortrait = portraitObject;
+            RectTransform portraitRect = portraitObject.GetComponent<RectTransform>();
+            portraitRect.SetParent(parent, false);
+            portraitRect.anchorMin = new Vector2(0.015f, 0.045f);
+            portraitRect.anchorMax = new Vector2(0.23f, 0.285f);
+            portraitRect.offsetMin = Vector2.zero;
+            portraitRect.offsetMax = Vector2.zero;
+
+            Image portraitImage = portraitObject.GetComponent<Image>();
+            portraitImage.sprite = BlockBlastSpriteLibrary.MouseSprite;
+            portraitImage.color = Color.white;
+            portraitImage.preserveAspect = true;
+            portraitImage.raycastTarget = false;
+        }
+
+        private void CreateSpeechBubbleTail(RectTransform panelRect)
+        {
+            GameObject tailObject = new GameObject("TutorialSpeechBubbleTail", typeof(RectTransform), typeof(Image), typeof(Outline));
+            RectTransform tailRect = tailObject.GetComponent<RectTransform>();
+            tailRect.SetParent(panelRect, false);
+            tailRect.anchorMin = new Vector2(0f, 0.43f);
+            tailRect.anchorMax = new Vector2(0f, 0.43f);
+            tailRect.anchoredPosition = new Vector2(-4f, 0f);
+            tailRect.sizeDelta = new Vector2(42f, 42f);
+            tailRect.localRotation = Quaternion.Euler(0f, 0f, 45f);
+
+            Image tailImage = tailObject.GetComponent<Image>();
+            tailImage.color = panelColor;
+            tailImage.raycastTarget = false;
+
+            Outline tailOutline = tailObject.GetComponent<Outline>();
+            tailOutline.effectColor = panelOutlineColor;
+            tailOutline.effectDistance = new Vector2(3f, -3f);
         }
 
         private TextMeshProUGUI CreateText(
@@ -503,7 +617,7 @@ namespace _Code.Manager
         {
             HideGuide();
 
-            if (!_isRunning || _rootRect == null)
+            if (!_isRunning || !_isMissionActive || _rootRect == null)
                 return;
 
             TutorialStep step = CurrentStep;
@@ -578,7 +692,7 @@ namespace _Code.Manager
                 if (piece == null || piece.IsPlaced || !piece.gameObject.activeInHierarchy)
                     continue;
 
-                for (int y = 0; y < _blockField.Height; y++)
+                for (int y = _blockField.Height - 1; y >= 0; y--)
                 {
                     for (int x = 0; x < _blockField.Width; x++)
                     {
@@ -735,6 +849,51 @@ namespace _Code.Manager
             return _guidePointerSprite;
         }
 
+        private Sprite GetSpeechBubbleSprite()
+        {
+            if (_speechBubbleSprite != null)
+                return _speechBubbleSprite;
+
+            const int textureSize = 64;
+            const float cornerRadius = 18f;
+            _speechBubbleTexture = new Texture2D(textureSize, textureSize, TextureFormat.RGBA32, false)
+            {
+                name = "TutorialSpeechBubble",
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp
+            };
+
+            Vector2 center = new Vector2((textureSize - 1) * 0.5f, (textureSize - 1) * 0.5f);
+            float straightHalfSize = center.x - cornerRadius;
+
+            for (int y = 0; y < textureSize; y++)
+            {
+                for (int x = 0; x < textureSize; x++)
+                {
+                    Vector2 distanceFromCenter = new Vector2(
+                        Mathf.Abs(x - center.x),
+                        Mathf.Abs(y - center.y));
+                    Vector2 cornerDistance = new Vector2(
+                        Mathf.Max(0f, distanceFromCenter.x - straightHalfSize),
+                        Mathf.Max(0f, distanceFromCenter.y - straightHalfSize));
+                    float alpha = Mathf.Clamp01(cornerRadius + 0.5f - cornerDistance.magnitude);
+                    _speechBubbleTexture.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
+                }
+            }
+
+            _speechBubbleTexture.Apply();
+            _speechBubbleSprite = Sprite.Create(
+                _speechBubbleTexture,
+                new Rect(0f, 0f, textureSize, textureSize),
+                new Vector2(0.5f, 0.5f),
+                textureSize,
+                0,
+                SpriteMeshType.FullRect,
+                Vector4.one * cornerRadius);
+            _speechBubbleSprite.name = "TutorialSpeechBubble";
+            return _speechBubbleSprite;
+        }
+
         private void BuildSteps()
         {
             if (_steps.Count > 0)
@@ -749,7 +908,7 @@ namespace _Code.Manager
 
             _steps.Add(new TutorialStep(
                 "쥐 이동하기",
-                "이제 화면을 밀면 쥐가 쥐구멍 사이를 이동하고, 고양이 블럭들도 같은 방향으로 밀려요.",
+                "이제 화면을 밀면 쥐가 쥐구멍 사이를 이동하고, 고양이 블럭들도 모양 그대로 같은 방향으로 밀려요. 스와이프로 줄을 지우면 점수를 2배로 얻어요.",
                 "쥐를 움직여볼까요?",
                 StepKind.Message,
                 Vector2Int.zero));
@@ -783,8 +942,15 @@ namespace _Code.Manager
                 Vector2Int.up));
 
             _steps.Add(new TutorialStep(
+                "고양이 성장",
+                "같은 고양이로만 줄을 지우면 고양이가 자라고 3번 지우면 성체가 돼요.",
+                "고양이를 키워봐요!",
+                StepKind.Message,
+                Vector2Int.zero));
+
+            _steps.Add(new TutorialStep(
                 "준비 완료",
-                "좋아요. 이제 쥐를 움직여 공간을 만들고 고양이 블럭을 배치해 점수를 올리면 돼요.",
+                "좋아요! 이제 고양이 블럭으로 가로줄이나 세로줄을 가득 채워 점수를 얻어봐요.",
                 "튜토리얼 완료",
                 StepKind.Finish,
                 Vector2Int.zero));

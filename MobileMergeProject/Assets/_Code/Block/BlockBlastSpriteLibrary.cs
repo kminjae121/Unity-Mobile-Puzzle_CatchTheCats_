@@ -9,6 +9,10 @@ namespace _Code.Block
         private const string BlackCatBlockSpritePath = "BlockBlast/BlackCatBlockSprite";
         private const string WhiteCatBlockSpritePath = "BlockBlast/WhiteCatBlockSprite";
         private const string SphynxCatBlockSpritePath = "BlockBlast/SphynxCatBlockSprite";
+        private const string BlackCatBlockSingleSpritePath = "BlockBlast/BlackCatBlockSpriteSingle";
+        private const string WhiteCatBlockSingleSpritePath = "BlockBlast/WhiteCatBlockSpriteSingle";
+        private const string SphynxCatBlockSingleSpritePath = "BlockBlast/SphynxCatBlockSpriteSingle";
+        private const string CatBlockSingleSpritePath = "BlockBlast/CatBlockSpriteSingle";
         private const string CheeseBlockSpritePath = "BlockBlast/CheeseBlockSprite";
         private const string MouseSpritePath = "BlockBlast/MouseSprite";
         private const string MouseIdleSpritePathPrefix = "BlockBlast/MouseIdle_";
@@ -25,6 +29,10 @@ namespace _Code.Block
         private static Sprite _blackCatBlockSprite;
         private static Sprite _whiteCatBlockSprite;
         private static Sprite _sphynxCatBlockSprite;
+        private static Sprite _blackCatBlockSingleSprite;
+        private static Sprite _whiteCatBlockSingleSprite;
+        private static Sprite _sphynxCatBlockSingleSprite;
+        private static Sprite _catBlockSingleSprite;
         private static Sprite _cheeseBlockSprite;
         private static Sprite[] _catBlockSprites;
         private static Sprite _mouseSprite;
@@ -52,6 +60,26 @@ namespace _Code.Block
         {
             Sprite[] sprites = CatBlockSprites;
             return sprites.Length > 0 ? sprites[Random.Range(0, sprites.Length)] : null;
+        }
+
+        public static Sprite GetSingleCellCatSprite(Sprite sprite)
+        {
+            if (sprite == null)
+                return null;
+
+            if (sprite == LoadSprite(BlackCatBlockSpritePath, ref _blackCatBlockSprite))
+                return LoadSprite(BlackCatBlockSingleSpritePath, ref _blackCatBlockSingleSprite) ?? sprite;
+
+            if (sprite == LoadSprite(WhiteCatBlockSpritePath, ref _whiteCatBlockSprite))
+                return LoadSprite(WhiteCatBlockSingleSpritePath, ref _whiteCatBlockSingleSprite) ?? sprite;
+
+            if (sprite == LoadSprite(SphynxCatBlockSpritePath, ref _sphynxCatBlockSprite))
+                return LoadSprite(SphynxCatBlockSingleSpritePath, ref _sphynxCatBlockSingleSprite) ?? sprite;
+
+            if (sprite == LoadSprite(CatBlockSpritePath, ref _catBlockSprite))
+                return LoadSprite(CatBlockSingleSpritePath, ref _catBlockSingleSprite) ?? sprite;
+
+            return sprite;
         }
 
         public static Sprite[] GetMouseMoveSprites(Vector2Int direction)

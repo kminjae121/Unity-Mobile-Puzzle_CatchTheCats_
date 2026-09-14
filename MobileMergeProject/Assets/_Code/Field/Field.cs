@@ -16,6 +16,7 @@ namespace _Code.Field
         private GameObject _thisObject;
         private Color _currentColor = Color.white;
         private Sprite _currentSprite;
+        private Sprite _visualSprite;
         private int _currentGroupId = -1;
         private bool _isStageCheese;
         private SpriteRenderer _objectRendererTemplate;
@@ -30,6 +31,7 @@ namespace _Code.Field
         public GameObject CurrentObject => _thisObject;
         public Color CurrentColor => _currentColor;
         public Sprite CurrentSprite => _currentSprite;
+        public Sprite VisualSprite => _visualSprite;
         public int CurrentGroupId => _currentGroupId;
         public bool IsStageCheese => _isStageCheese;
         public SpriteRenderer ObjectRendererTemplate => _objectRendererTemplate != null ? _objectRendererTemplate : _objectRenderer;
@@ -79,6 +81,7 @@ namespace _Code.Field
             _thisObject = obj;
             _currentColor = color;
             _currentSprite = sprite != null ? sprite : BlockBlastSpriteLibrary.CatBlockSprite;
+            _visualSprite = _currentSprite;
             _currentGroupId = groupId;
             _isStageCheese = isStageCheese;
 
@@ -103,10 +106,29 @@ namespace _Code.Field
             _thisObject = null;
             _currentColor = Color.white;
             _currentSprite = null;
+            _visualSprite = null;
             _currentGroupId = -1;
             _isStageCheese = false;
 
             ReleaseObjectRenderer();
+        }
+
+        public void ReassignGroup(int groupId)
+        {
+            if (_isHaveObject && !_isStageCheese)
+                _currentGroupId = groupId;
+        }
+
+        public void SetVisualSprite(Sprite sprite)
+        {
+            if (!_isHaveObject || _isStageCheese)
+                return;
+
+            _visualSprite = sprite != null ? sprite : _currentSprite;
+            bool hasCatSprite = ApplyObjectSprite();
+
+            if (_objectRenderer != null)
+                _objectRenderer.color = hasCatSprite ? Color.white : _currentColor;
         }
 
         public void Configure(Vector2Int point, SpriteRenderer backgroundRenderer, SpriteRenderer objectRenderer)
@@ -128,7 +150,7 @@ namespace _Code.Field
 
         private bool ApplyObjectSprite()
         {
-            Sprite sprite = _currentSprite != null ? _currentSprite : BlockBlastSpriteLibrary.CatBlockSprite;
+            Sprite sprite = _visualSprite != null ? _visualSprite : BlockBlastSpriteLibrary.CatBlockSprite;
 
             if (_objectRenderer == null || sprite == null)
                 return false;

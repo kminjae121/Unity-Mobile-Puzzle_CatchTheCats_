@@ -16,12 +16,12 @@ namespace _Code.Menu
         [SerializeField] private string stageSceneName = "StageScene";
         [SerializeField] private Button startBtn;
         [SerializeField] private Button stageBtn;
-        [SerializeField] private Button googleLoginBtn;
-        [SerializeField] private TextMeshProUGUI googleAccountNameTxt;
+        //[SerializeField] private Button googleLoginBtn;
+        //[SerializeField] private TextMeshProUGUI googleAccountNameTxt;
         [SerializeField] private JsonManager jsonManager;
         [SerializeField] private ServerScoreClient serverScoreClient;
-        [SerializeField] private GoogleLoginManager googleLoginManager;
-        [SerializeField] private GoogleSignInTokenProvider googleSignInTokenProvider;
+        //[SerializeField] private GoogleLoginManager googleLoginManager;
+        //[SerializeField] private GoogleSignInTokenProvider googleSignInTokenProvider;
         [SerializeField] private TextMeshProUGUI maxScoreTxt;
         [SerializeField] private TextMeshProUGUI goldTxt;
 
@@ -33,22 +33,22 @@ namespace _Code.Menu
             if (stageBtn != null)
                 stageBtn.onClick.AddListener(OpenStageScene);
 
-            if (googleLoginBtn != null)
-                googleLoginBtn.onClick.AddListener(StartGoogleLogin);
-
-            if (serverScoreClient == null)
-                serverScoreClient = GetComponent<ServerScoreClient>();
-
-            if (googleLoginManager == null)
-                googleLoginManager = GetComponent<GoogleLoginManager>();
-
-            if (googleSignInTokenProvider == null)
-                googleSignInTokenProvider = GetComponent<GoogleSignInTokenProvider>();
-
+            //if (googleLoginBtn != null)
+            //    googleLoginBtn.onClick.AddListener(StartGoogleLogin);
+            //
+            //if (serverScoreClient == null)
+            //    serverScoreClient = GetComponent<ServerScoreClient>();
+            //
+            //if (googleLoginManager == null)
+            //    googleLoginManager = GetComponent<GoogleLoginManager>();
+            //
+            //if (googleSignInTokenProvider == null)
+            //    googleSignInTokenProvider = GetComponent<GoogleSignInTokenProvider>();
+            //
             ResolveGoogleLoginUiReferences();
-
-            if (googleLoginManager != null)
-                googleLoginManager.LoggedIn += HandleLoggedIn;
+            //
+            //if (googleLoginManager != null)
+            //    googleLoginManager.LoggedIn += HandleLoggedIn;
 
             UpdateGameStartState();
             UpdateGoogleLoginUi();
@@ -69,11 +69,11 @@ namespace _Code.Menu
             if (stageBtn != null)
                 stageBtn.onClick.RemoveListener(OpenStageScene);
 
-            if (googleLoginBtn != null)
-                googleLoginBtn.onClick.RemoveListener(StartGoogleLogin);
-
-            if (googleLoginManager != null)
-                googleLoginManager.LoggedIn -= HandleLoggedIn;
+            //if (googleLoginBtn != null)
+            //    googleLoginBtn.onClick.RemoveListener(StartGoogleLogin);
+            //
+            //if (googleLoginManager != null)
+            //    googleLoginManager.LoggedIn -= HandleLoggedIn;
         }
 
         public void RefreshPlayerData()
@@ -170,16 +170,16 @@ namespace _Code.Menu
                 SceneManager.LoadScene(mainSceneName);
         }
 
-        public void StartGoogleLogin()
-        {
-            if (googleSignInTokenProvider == null)
-            {
-                Debug.LogWarning("Google sign-in token provider is missing.");
-                return;
-            }
-
-            googleSignInTokenProvider.SignIn();
-        }
+        //public void StartGoogleLogin()
+        //{
+        //    if (googleSignInTokenProvider == null)
+        //    {
+        //        Debug.LogWarning("Google sign-in token provider is missing.");
+        //        return;
+        //    }
+        //
+        //    googleSignInTokenProvider.SignIn();
+        //}
 
         private void HandleLoggedIn()
         {
@@ -210,33 +210,33 @@ namespace _Code.Menu
 
         private void ResolveGoogleLoginUiReferences()
         {
-            if (googleAccountNameTxt != null || googleLoginBtn == null)
-                return;
-
-            Transform accountNameTransform = googleLoginBtn.transform.parent.Find("GoogleAccountNameTxt");
-
-            if (accountNameTransform != null)
-                googleAccountNameTxt = accountNameTransform.GetComponent<TextMeshProUGUI>();
+           // if (googleAccountNameTxt != null || googleLoginBtn == null)
+           //     return;
+           //
+           // Transform accountNameTransform = googleLoginBtn.transform.parent.Find("GoogleAccountNameTxt");
+           //
+           // if (accountNameTransform != null)
+           //     googleAccountNameTxt = accountNameTransform.GetComponent<TextMeshProUGUI>();
         }
 
         private void UpdateGoogleLoginUi()
         {
-            bool isSignedIn = PlayerIdProvider.IsSignedIn;
-
-            if (googleLoginBtn != null)
-                googleLoginBtn.gameObject.SetActive(!isSignedIn);
-
-            if (googleAccountNameTxt == null)
-                return;
-
-            string accountName = googleLoginManager != null
-                ? googleLoginManager.CurrentAccountName
-                : string.Empty;
-
-            googleAccountNameTxt.text = !string.IsNullOrWhiteSpace(accountName)
-                ? accountName
-                : "\uB85C\uADF8\uC778\uB428";
-            googleAccountNameTxt.gameObject.SetActive(isSignedIn);
+            //bool isSignedIn = PlayerIdProvider.IsSignedIn;
+//
+//            if (googleLoginBtn != null)
+//                googleLoginBtn.gameObject.SetActive(!isSignedIn);
+//
+//            if (googleAccountNameTxt == null)
+//                return;
+//
+//            string accountName = googleLoginManager != null
+//                ? googleLoginManager.CurrentAccountName
+//                : string.Empty;
+//
+//            googleAccountNameTxt.text = !string.IsNullOrWhiteSpace(accountName)
+//                ? accountName
+//                : "\uB85C\uADF8\uC778\uB428";
+//            googleAccountNameTxt.gameObject.SetActive(isSignedIn);
         }
     }
 }

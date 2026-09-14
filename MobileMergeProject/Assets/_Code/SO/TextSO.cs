@@ -9,8 +9,7 @@ namespace _Code.SO
         Double,
         Tripple,
         Quadra,
-        
-        
+        PointX2
     }
     [CreateAssetMenu(fileName = "Event/Text", menuName = "Event/Text", order = 0)]
     public class TextSO : ScriptableObject

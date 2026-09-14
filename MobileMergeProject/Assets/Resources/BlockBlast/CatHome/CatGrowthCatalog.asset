@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6c81a9f032649cb897241082e9a1ab4, type: 3}
+  m_Name: CatGrowthCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::_Code.CatHome.CatGrowthCatalog
+  juvenileLineCount: 1
+  adultLineCount: 3
+  cats:
+  - type: 0
+    blockSprite: {fileID: 21300000, guid: 7b8f2bcb52404fae8b945b83db4334b5, type: 3}
+    kitten: {fileID: -760249467, guid: 8ff4c003f5dfcdf44a0d41a41b14d609, type: 3}
+    juvenile: {fileID: -401587520, guid: 8ff4c003f5dfcdf44a0d41a41b14d609, type: 3}
+    adult: {fileID: 742658316, guid: 8ff4c003f5dfcdf44a0d41a41b14d609, type: 3}
+    homePosition: {x: 0.852, y: 0.365}
+    adultSize: {x: 0.069, y: 0.053}
+  - type: 1
+    blockSprite: {fileID: 21300000, guid: 9b6de584726748cdbce4c85b7417d810, type: 3}
+    kitten: {fileID: -1392752334, guid: 8ff4c003f5dfcdf44a0d41a41b14d609, type: 3}
+    juvenile: {fileID: -2052699886, guid: 8ff4c003f5dfcdf44a0d41a41b14d609, type: 3}
+    adult: {fileID: -973938136, guid: 8ff4c003f5dfcdf44a0d41a41b14d609, type: 3}
+    homePosition: {x: 0.848, y: 0.199}
+    adultSize: {x: 0.14, y: 0.1}
+  - type: 2
+    blockSprite: {fileID: 21300000, guid: 6a8eab70efbf4cceb0f7455997106b28, type: 3}
+    kitten: {fileID: 502305447, guid: 8ff4c003f5dfcdf44a0d41a41b14d609, type: 3}
+    juvenile: {fileID: -283814663, guid: 8ff4c003f5dfcdf44a0d41a41b14d609, type: 3}
+    adult: {fileID: -217407338, guid: 8ff4c003f5dfcdf44a0d41a41b14d609, type: 3}
+    homePosition: {x: 0.112, y: 0.282}
+    adultSize: {x: 0.14, y: 0.092}
+  - type: 3
+    blockSprite: {fileID: 21300000, guid: 983914127ce0407394d0d46b0d8418d4, type: 3}
+    kitten: {fileID: 763828474, guid: 8ff4c003f5dfcdf44a0d41a41b14d609, type: 3}
+    juvenile: {fileID: 1775783131, guid: 8ff4c003f5dfcdf44a0d41a41b14d609, type: 3}
+    adult: {fileID: -336803082, guid: 8ff4c003f5dfcdf44a0d41a41b14d609, type: 3}
+    homePosition: {x: 0.085, y: 0.377}
+    adultSize: {x: 0.078, y: 0.06}

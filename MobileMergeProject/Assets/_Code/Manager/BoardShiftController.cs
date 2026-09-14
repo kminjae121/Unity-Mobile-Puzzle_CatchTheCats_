@@ -53,6 +53,11 @@ namespace _Code.Manager
             return _swipeInputReader.TryReadDirection(swipeMinDistance, enableKeyboardInput, out direction);
         }
 
+        public void CancelInput()
+        {
+            _swipeInputReader.Cancel();
+        }
+
         public bool TryShift(
             Vector2Int direction,
             ICollection<Vector3> clearedWorldPositions,
@@ -68,8 +73,8 @@ namespace _Code.Manager
             if (blockField == null || randomBlockManager == null)
                 return false;
     
-            if (mouse != null && !mouse.TryMove(direction, blockField))
-                return false;
+            if (mouse != null)
+                mouse.TryMove(direction, blockField);
 
             bool moved = blockField.Compact(direction);
             int clearedLines = blockField.ClearCompletedLines(clearedWorldPositions, clearedPoints, clearedSprites);
@@ -80,25 +85,25 @@ namespace _Code.Manager
             {
                 case 1:
                     Bus<CamShakeEvent>.Raise(new CamShakeEvent(0.1f));
-                    Bus<EventTxtEvent>.Raise(new EventTxtEvent(TextType.Clear));
                     SoundManager.Instance.PlayClip("ClearSound");
                     break;
                 case 2:
                     Bus<CamShakeEvent>.Raise(new CamShakeEvent(0.2f));
-                    Bus<EventTxtEvent>.Raise(new EventTxtEvent(TextType.Double));
                     SoundManager.Instance.PlayClip("ClearSound");
                     break;
                 case 3:
                     Bus<CamShakeEvent>.Raise(new CamShakeEvent(0.3f));
-                    Bus<EventTxtEvent>.Raise(new EventTxtEvent(TextType.Tripple));
                     SoundManager.Instance.PlayClip("ClearSound");
                     break;
                 case 4:
                     Bus<CamShakeEvent>.Raise(new CamShakeEvent(0.4f));
-                    Bus<EventTxtEvent>.Raise(new EventTxtEvent(TextType.Quadra));
                     SoundManager.Instance.PlayClip("ClearSound");
                     break;
             }
+
+            if (clearedLines > 0)
+                Bus<EventTxtEvent>.Raise(new EventTxtEvent(TextType.PointX2));
+
             return true;
         }
 

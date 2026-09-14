@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using UnityEngine;
@@ -10,6 +11,7 @@ namespace _Code.Manager
         [SerializeField] private string _fileName = "score-data.json";
 
         private const int DailyGoldRewardAmount = 1000;
+        public const int CatTypeCount = 4;
         private static readonly TimeSpan KoreaDailyRewardTime = new TimeSpan(18, 0, 0);
 
         private ScoreSaveData _saveData = new ScoreSaveData();
@@ -74,6 +76,49 @@ namespace _Code.Manager
         {
             _saveData = new ScoreSaveData();
             Save();
+        }
+
+        public void ResetCatGrowthLines()
+        {
+            bool changed = false;
+            for (int i = 0; i < CatTypeCount; i++)
+            {
+                if (_saveData.CatGrowthLines[i] == 0)
+                    continue;
+
+                _saveData.CatGrowthLines[i] = 0;
+                changed = true;
+            }
+
+            if (changed)
+                Save();
+        }
+
+        public int GetCatGrowthLines(int catIndex)
+        {
+            if (catIndex < 0 || catIndex >= CatTypeCount)
+                throw new ArgumentOutOfRangeException(nameof(catIndex));
+
+            return _saveData.CatGrowthLines[catIndex];
+        }
+
+        public void AddCatGrowthLines(IReadOnlyList<int> lineCounts)
+        {
+            if (lineCounts == null || lineCounts.Count != CatTypeCount)
+                throw new ArgumentException("Expected one line count for each of the four cats.", nameof(lineCounts));
+
+            bool changed = false;
+            for (int i = 0; i < CatTypeCount; i++)
+            {
+                if (lineCounts[i] <= 0)
+                    continue;
+
+                _saveData.CatGrowthLines[i] = (int)Math.Min(int.MaxValue, (long)_saveData.CatGrowthLines[i] + lineCounts[i]);
+                changed = true;
+            }
+
+            if (changed)
+                Save();
         }
 
         public void AddGold(int amount)
@@ -143,6 +188,15 @@ namespace _Code.Manager
             _saveData.MaxScore = Mathf.Max(0, _saveData.MaxScore);
             _saveData.Gold = Mathf.Max(0, _saveData.Gold);
 
+            // Older score files do not contain cat growth yet.
+            if (_saveData.CatGrowthLines == null)
+                _saveData.CatGrowthLines = new int[CatTypeCount];
+            else if (_saveData.CatGrowthLines.Length != CatTypeCount)
+                Array.Resize(ref _saveData.CatGrowthLines, CatTypeCount);
+
+            for (int i = 0; i < CatTypeCount; i++)
+                _saveData.CatGrowthLines[i] = Mathf.Max(0, _saveData.CatGrowthLines[i]);
+
             if (string.IsNullOrWhiteSpace(_saveData.LastDailyGoldRewardDate))
                 _saveData.LastDailyGoldRewardDate = string.Empty;
         }
@@ -175,6 +229,7 @@ namespace _Code.Manager
         {
             public int MaxScore;
             public int Gold;
+            public int[] CatGrowthLines = new int[CatTypeCount];
             public string LastDailyGoldRewardDate = string.Empty;
         }
     }

@@ -31,22 +31,26 @@ namespace _Code.Effects
                 Play(transform.position, 1, Color.white);
         }
 
-        public void Play(Vector3 worldPosition, int clearedLineCount, Color effectColor)
+        public void Play(Vector3 worldPosition, int clearedLineCount, Color effectColor, float sizeMultiplier = 1f)
         {
             transform.position = worldPosition;
             gameObject.SetActive(true);
             StopAndClear();
 
             int burstMultiplier = Mathf.Max(1, clearedLineCount);
-            Emit(_pawParticles, _pawBurstCount * burstMultiplier, effectColor);
-            Emit(_sparkleParticles, _sparkleBurstCount * burstMultiplier, effectColor);
+            Emit(_pawParticles, _pawBurstCount * burstMultiplier, effectColor, sizeMultiplier);
+            Emit(_sparkleParticles, _sparkleBurstCount * burstMultiplier, effectColor, sizeMultiplier);
         }
 
-        public void PlayAtPositions(IReadOnlyList<Vector3> worldPositions, int clearedLineCount, Color particleColor)
+        public void PlayAtPositions(
+            IReadOnlyList<Vector3> worldPositions,
+            int clearedLineCount,
+            Color particleColor,
+            float sizeMultiplier = 1f)
         {
             if (worldPositions == null || worldPositions.Count == 0)
             {
-                Play(transform.position, clearedLineCount, particleColor);
+                Play(transform.position, clearedLineCount, particleColor, sizeMultiplier);
                 return;
             }
 
@@ -55,8 +59,8 @@ namespace _Code.Effects
 
             foreach (Vector3 worldPosition in worldPositions)
             {
-                EmitAt(_pawParticles, worldPosition, _perBlockPawBurstCount, particleColor);
-                EmitAt(_sparkleParticles, worldPosition, _perBlockSparkleBurstCount, particleColor);
+                EmitAt(_pawParticles, worldPosition, _perBlockPawBurstCount, particleColor, sizeMultiplier);
+                EmitAt(_sparkleParticles, worldPosition, _perBlockSparkleBurstCount, particleColor, sizeMultiplier);
             }
         }
 
@@ -68,7 +72,7 @@ namespace _Code.Effects
                 Clear(particles);
         }
 
-        private static void Emit(ParticleSystem particles, int count, Color effectColor)
+        private static void Emit(ParticleSystem particles, int count, Color effectColor, float sizeMultiplier)
         {
             if (particles == null || count <= 0)
                 return;
@@ -79,10 +83,15 @@ namespace _Code.Effects
             {
                 startColor = effectColor
             };
-            particles.Emit(emitParams, count);
+            EmitWithSizeMultiplier(particles, emitParams, count, sizeMultiplier);
         }
 
-        private static void EmitAt(ParticleSystem particles, Vector3 worldPosition, int count, Color particleColor)
+        private static void EmitAt(
+            ParticleSystem particles,
+            Vector3 worldPosition,
+            int count,
+            Color particleColor,
+            float sizeMultiplier)
         {
             if (particles == null || count <= 0)
                 return;
@@ -93,7 +102,20 @@ namespace _Code.Effects
                 startColor = particleColor,
                 applyShapeToPosition = true
             };
+            EmitWithSizeMultiplier(particles, emitParams, count, sizeMultiplier);
+        }
+
+        private static void EmitWithSizeMultiplier(
+            ParticleSystem particles,
+            ParticleSystem.EmitParams emitParams,
+            int count,
+            float sizeMultiplier)
+        {
+            ParticleSystem.MainModule main = particles.main;
+            float originalSizeMultiplier = main.startSizeMultiplier;
+            main.startSizeMultiplier = originalSizeMultiplier * Mathf.Max(0.01f, sizeMultiplier);
             particles.Emit(emitParams, count);
+            main.startSizeMultiplier = originalSizeMultiplier;
         }
 
         private static void Clear(ParticleSystem particles)

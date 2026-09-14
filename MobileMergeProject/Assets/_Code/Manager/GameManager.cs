@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using _Code.Block;
+using _Code.CatHome;
 using _Code.Effects;
 using _Code.Field;
 using _Code.Server;
@@ -45,11 +46,15 @@ namespace _Code.Manager
         [SerializeField] private LineClearEffectPlayer lineClearEffectPlayer;
         [SerializeField] private PlacementScoreGuard placementScoreGuard;
         [SerializeField] private TutorialController tutorialController;
+        [SerializeField] private CatHomeGrowthController catHomeGrowthController;
 
         private readonly List<Vector3> _clearedBlockPositions = new List<Vector3>(36);
         private readonly List<Vector2Int> _clearedBlockPoints = new List<Vector2Int>(36);
         private readonly List<Sprite> _clearedBlockSprites = new List<Sprite>(36);
         private bool _isGameOver;
+
+        private const int SwipeClearScoreMultiplier = 2;
+        private const float SwipeClearEffectSizeMultiplier = 1.4f;
 
         private static readonly Color BlackCatEffectColor = new Color(0.08f, 0.08f, 0.08f, 1f);
         private static readonly Color WhiteCatEffectColor = Color.white;
@@ -75,6 +80,8 @@ namespace _Code.Manager
 
             blockField.Rebuild();
             blockField.ClearAll();
+            jsonManager?.ResetCatGrowthLines();
+            catHomeGrowthController.Initialize(blockField, jsonManager);
             stageModeController.Initialize(blockField, gameObject);
 
             randomBlockManager.Initialize(pieces);
@@ -100,6 +107,13 @@ namespace _Code.Manager
         {
             if (_isGameOver)
                 return;
+
+            if (tutorialController != null && tutorialController.IsGameplayInputLocked)
+            {
+                boardShiftController?.CancelInput();
+                placementPreview?.Hide();
+                return;
+            }
 
             if (boardShiftController != null &&
                 boardShiftController.TryReadDirection(BlockPiece.IsAnyDragging, out Vector2Int direction))
@@ -141,6 +155,19 @@ namespace _Code.Manager
 
             if (!string.IsNullOrEmpty(resetSceneName))
                 SceneManager.LoadScene(resetSceneName);
+        }
+
+        public void ReturnToStageSelect()
+        {
+            _isGameOver = true;
+            placementPreview?.Hide();
+            playerProgressController?.TryUpdateMaxScore(true);
+            StageRunContext.SelectInfiniteMode();
+
+            string stageSelectSceneName = stageModeController != null
+                ? stageModeController.StageSelectSceneName
+                : "StageScene";
+            SceneManager.LoadScene(stageSelectSceneName);
         }
 
         private void ResolveSceneReferences()
@@ -188,6 +215,9 @@ namespace _Code.Manager
 
             if (tutorialController == null)
                 tutorialController = GetOrAdd<TutorialController>();
+
+            if (catHomeGrowthController == null)
+                catHomeGrowthController = GetOrAdd<CatHomeGrowthController>();
         }
 
         private void ConfigureControllers()
@@ -326,8 +356,13 @@ namespace _Code.Manager
 
             if (result.ClearedLines > 0)
             {
-                playerProgressController.AddScore(result.ClearedLines * 90 + result.ClearedLines * result.ClearedLines * 40, true);
-                lineClearEffectPlayer.Play(result.ClearedLines, _clearedBlockPositions,Color.white);
+                int clearScore = result.ClearedLines * 90 + result.ClearedLines * result.ClearedLines * 40;
+                playerProgressController.AddScore(clearScore * SwipeClearScoreMultiplier, true);
+                lineClearEffectPlayer.Play(
+                    result.ClearedLines,
+                    _clearedBlockPositions,
+                    Color.white,
+                    SwipeClearEffectSizeMultiplier);
             }
 
             if (TryCompleteStage())
@@ -486,6 +521,7 @@ namespace _Code.Manager
 
             BlockPiece activePiece = BlockPiece.ActivePiece;
             if (_isGameOver ||
+                (tutorialController != null && tutorialController.IsGameplayInputLocked) ||
                 activePiece == null)
             {
                 placementPreview.Hide();

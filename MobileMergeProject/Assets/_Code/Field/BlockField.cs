@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using _Code.Block;
 using UnityEngine;
@@ -19,6 +20,7 @@ namespace _Code.Field
         public int Height => _height;
         public float CellSize => _cellSize;
         public IReadOnlyList<Field> Fields => _fields;
+        public event Action<IReadOnlyList<Sprite>> MatchingCatLinesCleared;
 
         private void Awake()
         {
@@ -202,6 +204,8 @@ namespace _Code.Field
             ICollection<Sprite> clearedSprites)
         {
             HashSet<Field> fieldsToClear = new HashSet<Field>();
+            HashSet<int> damagedGroupIds = new HashSet<int>();
+            List<Sprite> matchingLineSprites = new List<Sprite>();
             int clearedLineCount = 0;
             clearedWorldPositions?.Clear();
             clearedPoints?.Clear();
@@ -213,6 +217,9 @@ namespace _Code.Field
                     continue;
 
                 clearedLineCount++;
+                Sprite rowSprite = GetMatchingLineSprite(new Vector2Int(0, y), Vector2Int.right, _width);
+                if (rowSprite != null)
+                    matchingLineSprites.Add(rowSprite);
                 for (int x = 0; x < _width; x++)
                     fieldsToClear.Add(Installables[x, y]);
             }
@@ -223,6 +230,9 @@ namespace _Code.Field
                     continue;
 
                 clearedLineCount++;
+                Sprite columnSprite = GetMatchingLineSprite(new Vector2Int(x, 0), Vector2Int.up, _height);
+                if (columnSprite != null)
+                    matchingLineSprites.Add(columnSprite);
                 for (int y = 0; y < _height; y++)
                     fieldsToClear.Add(Installables[x, y]);
             }
@@ -232,10 +242,39 @@ namespace _Code.Field
                 clearedWorldPositions?.Add(field.transform.position);
                 clearedPoints?.Add(field.Point);
                 clearedSprites?.Add(field.CurrentSprite);
+
+                if (!field.IsStageCheese)
+                    damagedGroupIds.Add(field.CurrentGroupId);
+
                 field.ClearObject();
             }
 
+            SplitDamagedGroupsIntoCells(damagedGroupIds);
+
+            // Capture each row/column before clearing, so intersecting lines count independently.
+            if (matchingLineSprites.Count > 0)
+                MatchingCatLinesCleared?.Invoke(matchingLineSprites);
+
             return clearedLineCount;
+        }
+
+        private Sprite GetMatchingLineSprite(Vector2Int start, Vector2Int step, int length)
+        {
+            Sprite matchingSprite = null;
+            for (int i = 0; i < length; i++)
+            {
+                Vector2Int point = start + step * i;
+                Field field = Installables[point.x, point.y];
+                if (field == null || field.IsEmpty || field.IsStageCheese || field.CurrentSprite == null)
+                    return null;
+
+                if (i == 0)
+                    matchingSprite = field.CurrentSprite;
+                else if (field.CurrentSprite != matchingSprite)
+                    return null;
+            }
+
+            return matchingSprite;
         }
 
         public void ClearAll()
@@ -314,53 +353,39 @@ namespace _Code.Field
 
         private List<BlockGroup> GetBlockGroups()
         {
-            List<BlockGroup> groups = new List<BlockGroup>();
-            HashSet<Vector2Int> visited = new HashSet<Vector2Int>();
+            Dictionary<int, BlockGroup> groupsById = new Dictionary<int, BlockGroup>();
 
             foreach (Field field in _fields)
             {
-                if (field.IsEmpty || field.IsStageCheese || visited.Contains(field.Point))
+                if (field.IsEmpty || field.IsStageCheese)
                     continue;
 
-                groups.Add(BuildConnectedGroup(field, visited));
-            }
+                int groupId = field.CurrentGroupId;
+                if (!groupsById.TryGetValue(groupId, out BlockGroup group))
+                {
+                    group = new BlockGroup(groupId);
+                    groupsById.Add(groupId, group);
+                }
 
-            return groups;
-        }
-
-        private BlockGroup BuildConnectedGroup(Field startField, HashSet<Vector2Int> visited)
-        {
-            int groupId = startField.CurrentGroupId;
-            BlockGroup group = new BlockGroup(groupId);
-            Queue<Field> queue = new Queue<Field>();
-
-            visited.Add(startField.Point);
-            queue.Enqueue(startField);
-
-            while (queue.Count > 0)
-            {
-                Field field = queue.Dequeue();
                 group.Add(field);
-
-                TryEnqueueNeighbor(field.Point + Vector2Int.up, groupId, visited, queue);
-                TryEnqueueNeighbor(field.Point + Vector2Int.down, groupId, visited, queue);
-                TryEnqueueNeighbor(field.Point + Vector2Int.left, groupId, visited, queue);
-                TryEnqueueNeighbor(field.Point + Vector2Int.right, groupId, visited, queue);
             }
 
-            return group;
+            return new List<BlockGroup>(groupsById.Values);
         }
 
-        private void TryEnqueueNeighbor(Vector2Int point, int groupId, HashSet<Vector2Int> visited, Queue<Field> queue)
+        private void SplitDamagedGroupsIntoCells(HashSet<int> damagedGroupIds)
         {
-            if (visited.Contains(point))
+            if (damagedGroupIds == null || damagedGroupIds.Count == 0)
                 return;
 
-            if (!TryGetField(point, out Field field) || field.IsEmpty || field.CurrentGroupId != groupId)
-                return;
+            foreach (Field field in _fields)
+            {
+                if (field.IsEmpty || field.IsStageCheese || !damagedGroupIds.Contains(field.CurrentGroupId))
+                    continue;
 
-            visited.Add(point);
-            queue.Enqueue(field);
+                field.ReassignGroup(_nextGroupId++);
+                field.SetVisualSprite(BlockBlastSpriteLibrary.GetSingleCellCatSprite(field.CurrentSprite));
+            }
         }
 
         private bool CanMoveGroup(BlockGroup group, Vector2Int direction)
@@ -392,7 +417,10 @@ namespace _Code.Field
                 Vector2Int targetPoint = cell.Point + direction;
 
                 if (TryGetField(targetPoint, out Field field))
+                {
                     field.SetObject(cell.Object, cell.Color, cell.Sprite, group.Id, cell.VisualWorldPosition);
+                    field.SetVisualSprite(cell.VisualSprite);
+                }
             }
         }
 
@@ -429,6 +457,7 @@ namespace _Code.Field
                 Object = field.CurrentObject;
                 Color = field.CurrentColor;
                 Sprite = field.CurrentSprite;
+                VisualSprite = field.VisualSprite;
                 VisualWorldPosition = field.ObjectRendererWorldPosition;
             }
 
@@ -436,6 +465,7 @@ namespace _Code.Field
             public GameObject Object { get; }
             public Color Color { get; }
             public Sprite Sprite { get; }
+            public Sprite VisualSprite { get; }
             public Vector3 VisualWorldPosition { get; }
         }
 

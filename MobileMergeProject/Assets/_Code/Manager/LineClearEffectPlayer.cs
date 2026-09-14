@@ -34,7 +34,11 @@ namespace _Code.Manager
             WarmPool();
         }
 
-        public void Play(int clearedLines, IReadOnlyList<Vector3> clearedBlockPositions,Color effectColor)
+        public void Play(
+            int clearedLines,
+            IReadOnlyList<Vector3> clearedBlockPositions,
+            Color effectColor,
+            float sizeMultiplier = 1f)
         {
             if (clearedLines <= 0)
                 return;
@@ -42,7 +46,7 @@ namespace _Code.Manager
             LineClearPawParticleEffect effect = GetEffect();
             if (effect != null)
             {
-                effect.PlayAtPositions(clearedBlockPositions, clearedLines,effectColor);
+                effect.PlayAtPositions(clearedBlockPositions, clearedLines, effectColor, sizeMultiplier);
                 StartCoroutine(ReturnAfterPlay(effect));
             }
 
