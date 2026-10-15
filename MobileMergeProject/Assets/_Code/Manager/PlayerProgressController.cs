@@ -74,6 +74,12 @@ namespace _Code.Manager
                 SyncToServer();
         }
 
+        public void ResetCurrentScore()
+        {
+            _score = 0;
+            UpdateScoreText();
+        }
+
         public bool TryUpdateMaxScore(bool syncToServer)
         {
             if (_score <= _maxScore)

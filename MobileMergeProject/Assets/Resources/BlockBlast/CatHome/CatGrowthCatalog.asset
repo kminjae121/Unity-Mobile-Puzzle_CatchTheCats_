@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: CatGrowthCatalog
   m_EditorClassIdentifier: Assembly-CSharp::_Code.CatHome.CatGrowthCatalog
   juvenileLineCount: 1
-  adultLineCount: 3
+  adultLineCount: 2
   cats:
   - type: 0
     blockSprite: {fileID: 21300000, guid: 7b8f2bcb52404fae8b945b83db4334b5, type: 3}

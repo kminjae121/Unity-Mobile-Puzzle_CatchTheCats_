@@ -7,6 +7,7 @@ using _Code.Block;
 using _Code.CatHome;
 using _Code.Field;
 using _Code.Manager;
+using _Code.Stage;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -28,7 +29,10 @@ public static class CatHomeValidation
         _checks = 0;
         Directory.CreateDirectory(Output);
         Scene previousScene = SceneManager.GetActiveScene();
-        Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
+        bool createdValidationScene = !string.IsNullOrEmpty(previousScene.path);
+        Scene scene = createdValidationScene
+            ? EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive)
+            : previousScene;
         SceneManager.SetActiveScene(scene);
         try
         {
@@ -38,14 +42,15 @@ public static class CatHomeValidation
                 Check(cat.blockSprite != null && cat.kitten != null && cat.juvenile != null && cat.adult != null,
                     "All sprites present: " + cat.type);
             Check(catalog.GetStage(0) == 0, "Kitten threshold");
-            Check(catalog.GetStage(1) == 1 && catalog.GetStage(2) == 1, "Juvenile threshold");
-            Check(catalog.GetStage(3) == 2 && catalog.GetStage(int.MaxValue) == 2, "Adult threshold and cap");
-            for (int i = 0; i < 3; i++)
+            Check(catalog.GetStage(1) == 1, "Juvenile threshold");
+            Check(catalog.GetStage(2) == 2 && catalog.GetStage(int.MaxValue) == 2, "Two matching lines make an adult");
+            for (int i = 0; i < 2; i++)
                 Check(catalog.GetSize(i) < catalog.GetSize(i + 1), "Gradual size increase " + i);
-            Check(Mathf.Approximately(catalog.GetSize(3), catalog.GetSize(4)), "Adult size cap");
+            Check(Mathf.Approximately(catalog.GetSize(2), catalog.GetSize(3)), "Adult size cap");
 
             BlockField board = BuildBoard();
             ValidateLines(board, catalog);
+            ValidateFeaturedCatSelection(board, catalog);
             ValidateSingleCellOutlineSprite(board, catalog);
             ValidateTutorialGrowthStep();
             JsonManager save = BuildSave();
@@ -61,41 +66,26 @@ public static class CatHomeValidation
 
             Render(background, "kittens-720x1080.png", 720, 1080);
             Render(background, "kittens-540x1200.png", 540, 1200);
-            for (int i = 0; i < 3; i++)
-            {
-                board.ClearAll();
-                for (int x = 0; x < 6; x++)
-                    board.Installables[x, 0].SetObject(board.gameObject, Color.white, catalog.cats[0].blockSprite, x + 1);
-                board.ClearCompletedLines();
-            }
-            Check(save.GetCatGrowthLines(0) == 3, "Three matching black rows grow a black cat to adult");
-            Check(save.GetCatGrowthLines(1) == 0 && save.GetCatGrowthLines(2) == 0 && save.GetCatGrowthLines(3) == 0,
-                "Other cats do not grow");
-            Check(views.Single(view => view.CatType == HomeCatType.Black).Portrait.sprite == catalog.cats[0].adult,
-                "Correct cat changes to adult sprite");
-            save.Load();
-            Check(save.GetCatGrowthLines(0) == 3, "Growth survives a reload during the current game");
+            ValidateCatSkills(board, catalog, save, controller, views);
+            ValidateSphynxObjectSwipe(board, catalog);
+            ValidateCheeseMultiplier(board);
+
             controller.Initialize(board, save);
             controller.Initialize(board, save);
-            board.ClearAll();
-            for (int x = 0; x < 6; x++)
-                board.Installables[x, 0].SetObject(board.gameObject, Color.white, catalog.cats[0].blockSprite, x + 1);
-            board.ClearCompletedLines();
-            Check(save.GetCatGrowthLines(0) == 4, "Reinitializing does not duplicate event subscriptions");
+            ClearMatchingLine(board, catalog.cats[(int)HomeCatType.Black].blockSprite);
+            Check(save.GetCatGrowthLines((int)HomeCatType.Black) == 1,
+                "Reinitializing does not duplicate event subscriptions");
             Check(background.GetComponentsInChildren<CatResidentView>().Length == 4, "Reinitializing does not duplicate residents");
             controller.enabled = false;
             // Edit-mode checks invoke lifecycle methods explicitly; Unity dispatches them in Play mode.
             typeof(CatHomeGrowthController).GetMethod("OnDisable", BindingFlags.Instance | BindingFlags.NonPublic)
                 .Invoke(controller, null);
-            board.ClearAll();
-            for (int x = 0; x < 6; x++)
-                board.Installables[x, 0].SetObject(board.gameObject, Color.white, catalog.cats[0].blockSprite, x + 1);
-            board.ClearCompletedLines();
-            Check(save.GetCatGrowthLines(0) == 4, "Disabled controller unsubscribes");
+            ClearMatchingLine(board, catalog.cats[(int)HomeCatType.Black].blockSprite);
+            Check(save.GetCatGrowthLines((int)HomeCatType.Black) == 1, "Disabled controller unsubscribes");
 
             foreach (CatResidentView view in views)
             {
-                view.SetProgress(catalog, catalog.cats[(int)view.CatType], 3, false);
+                view.SetProgress(catalog, catalog.cats[(int)view.CatType], catalog.adultLineCount, false);
                 MethodInfo pose = typeof(CatResidentView).GetMethod("ApplyPose", BindingFlags.Instance | BindingFlags.NonPublic);
                 pose.Invoke(view, new object[] { 0f });
                 Vector3 before = view.Portrait.transform.localScale;
@@ -111,14 +101,17 @@ public static class CatHomeValidation
             board.ClearAll();
             ValidateGameplayScenes();
             string report = "PASS: " + _checks + " checks. Includes 100 seeded board cases, mixed/cheese/cross lines, " +
-                "growth thresholds, independent types, old saves, reload, duplicate subscriptions, animation and 11 gameplay scenes.";
+                "growth thresholds, adult skills, old saves, reload, duplicate subscriptions, animation and 11 gameplay scenes.";
             File.WriteAllText(Output + "/report.txt", report);
             Debug.Log(report);
         }
         finally
         {
-            SceneManager.SetActiveScene(previousScene);
-            EditorSceneManager.CloseScene(scene, true);
+            if (createdValidationScene)
+            {
+                SceneManager.SetActiveScene(previousScene);
+                EditorSceneManager.CloseScene(scene, true);
+            }
         }
     }
 
@@ -170,6 +163,136 @@ public static class CatHomeValidation
         board.MatchingCatLinesCleared -= listener;
     }
 
+    private static void ValidateCatSkills(
+        BlockField board,
+        CatGrowthCatalog catalog,
+        JsonManager save,
+        CatHomeGrowthController controller,
+        IReadOnlyList<CatResidentView> views)
+    {
+        save.ResetCatGrowthLines();
+        ClearMatchingLine(board, catalog.cats[(int)HomeCatType.Black].blockSprite);
+        ClearMatchingLine(board, catalog.cats[(int)HomeCatType.Black].blockSprite);
+        Check(save.GetCatGrowthLines((int)HomeCatType.Black) == 2, "Two black lines activate the score skill");
+        Check(controller.ScoreMultiplier == 2, "Black adult doubles score for three turns");
+        Check(FindView(views, HomeCatType.Black).Portrait.sprite == catalog.cats[(int)HomeCatType.Black].adult,
+            "Black adult uses the adult sprite while its skill is active");
+        save.Load();
+        Check(save.GetCatGrowthLines((int)HomeCatType.Black) == 2, "Active growth survives a reload during the current game");
+        controller.CompleteTurn();
+        controller.CompleteTurn();
+        controller.CompleteTurn();
+        Check(controller.ScoreMultiplier == 1 && save.GetCatGrowthLines((int)HomeCatType.Black) == 0,
+            "Black score skill ends after three turns and resets growth");
+        Check(FindView(views, HomeCatType.Black).Portrait.sprite == catalog.cats[(int)HomeCatType.Black].kitten,
+            "Black cat returns to a kitten after its skill ends");
+
+        ClearMatchingLine(board, catalog.cats[(int)HomeCatType.White].blockSprite);
+        ClearMatchingLine(board, catalog.cats[(int)HomeCatType.White].blockSprite);
+        Check(controller.HasWhiteExtraLife, "White adult grants one extra life");
+        Check(controller.TryUseWhiteExtraLife() && !controller.HasWhiteExtraLife,
+            "White extra life can be consumed once");
+        Check(save.GetCatGrowthLines((int)HomeCatType.White) == 0 &&
+              FindView(views, HomeCatType.White).Portrait.sprite == catalog.cats[(int)HomeCatType.White].kitten,
+            "White cat returns to a kitten when its life is used");
+
+        ClearMatchingLine(board, catalog.cats[(int)HomeCatType.Sphynx].blockSprite);
+        ClearMatchingLine(board, catalog.cats[(int)HomeCatType.Sphynx].blockSprite);
+        Check(controller.HasSphynxObjectSwipe, "Sphynx adult prepares one object-based swipe");
+        Check(controller.ConsumeSphynxObjectSwipe() && !controller.HasSphynxObjectSwipe,
+            "Sphynx object swipe is consumed once");
+        Check(save.GetCatGrowthLines((int)HomeCatType.Sphynx) == 0 &&
+              FindView(views, HomeCatType.Sphynx).Portrait.sprite == catalog.cats[(int)HomeCatType.Sphynx].kitten,
+            "Sphynx cat returns to a kitten after its swipe");
+
+        ClearMatchingLine(board, catalog.cats[(int)HomeCatType.Orange].blockSprite);
+        ClearMatchingLine(board, catalog.cats[(int)HomeCatType.Orange].blockSprite);
+        Check(controller.CheeseMultiplier == 2, "Orange adult doubles cheese collection for three turns");
+        controller.CompleteTurn();
+        controller.CompleteTurn();
+        controller.CompleteTurn();
+        Check(controller.CheeseMultiplier == 1 && save.GetCatGrowthLines((int)HomeCatType.Orange) == 0,
+            "Orange cheese skill ends after three turns and resets growth");
+        Check(FindView(views, HomeCatType.Orange).Portrait.sprite == catalog.cats[(int)HomeCatType.Orange].kitten,
+            "Orange cat returns to a kitten after its skill ends");
+    }
+
+    private static void ValidateFeaturedCatSelection(BlockField board, CatGrowthCatalog catalog)
+    {
+        board.ClearAll();
+        Sprite black = catalog.cats[(int)HomeCatType.Black].blockSprite;
+        Sprite white = catalog.cats[(int)HomeCatType.White].blockSprite;
+        board.Installables[0, 0].SetObject(board.gameObject, Color.white, black, 1);
+        board.Installables[1, 0].SetObject(board.gameObject, Color.white, black, 2);
+        board.Installables[2, 0].SetObject(board.gameObject, Color.white, black, 3);
+        board.Installables[3, 0].SetObject(board.gameObject, Color.white, white, 4);
+        board.Installables[4, 0].SetStageCheeseObject(board.gameObject, BlockBlastSpriteLibrary.CheeseBlockSprite, 5);
+        Check(board.GetMostCommonCatSprite() == black,
+            "New block sets prefer the most common playable cat and ignore cheese");
+        board.ClearAll();
+        Check(board.GetMostCommonCatSprite() == null, "An empty board has no preferred cat");
+    }
+
+    private static void ValidateSphynxObjectSwipe(BlockField board, CatGrowthCatalog catalog)
+    {
+        board.ClearAll();
+        Sprite sprite = catalog.cats[(int)HomeCatType.Sphynx].blockSprite;
+        Field left = board.Installables[0, 0];
+        Field right = board.Installables[1, 0];
+        left.SetObject(board.gameObject, Color.white, sprite, 50);
+        right.SetObject(board.gameObject, Color.white, sprite, 50);
+        left.ReassignGroup(501);
+        right.ReassignGroup(502);
+        board.Installables[0, 5].SetObject(board.gameObject, Color.white, sprite, 60);
+
+        Check(board.Compact(Vector2Int.up, true), "Object-based swipe moves a partially split block");
+        Field movedLeft = board.Installables[0, 4];
+        Field movedRight = board.Installables[1, 4];
+        Check(movedLeft.CurrentGroupId == 501 && movedRight.CurrentGroupId == 502,
+            "Object-based swipe restores the original individual movement groups afterward");
+        Check(movedLeft.OriginalGroupId == 50 && movedRight.OriginalGroupId == 50,
+            "Object-based swipe remembers the placed block that the cells came from");
+        board.ClearAll();
+    }
+
+    private static void ValidateCheeseMultiplier(BlockField board)
+    {
+        GameObject root = new GameObject("CheeseMultiplierTest");
+        StageModeController stage = root.AddComponent<StageModeController>();
+        try
+        {
+            StageRunContext.SelectStage(2);
+            board.ClearAll();
+            stage.Initialize(board, root);
+            Vector2Int clearedPoint = new Vector2Int(2, 2);
+            board.Installables[clearedPoint.x, clearedPoint.y].ClearObject();
+            stage.NotifyClearedPoints(new[] { clearedPoint }, 2);
+            Check(stage.RemainingCheeseCount == 0, "Orange skill counts one cheese clear as two");
+            Check(board.Installables[3, 3].IsEmpty, "Orange skill removes the bonus cheese block");
+            Check(stage.GrantExtraPlacementAttempt() && stage.MaxPlacementCount == 14,
+                "White life adds one placement attempt to cheese stages");
+        }
+        finally
+        {
+            StageRunContext.SelectInfiniteMode();
+            board.ClearAll();
+            Object.DestroyImmediate(root);
+        }
+    }
+
+    private static void ClearMatchingLine(BlockField board, Sprite sprite)
+    {
+        board.ClearAll();
+        for (int x = 0; x < board.Width; x++)
+            board.Installables[x, 0].SetObject(board.gameObject, Color.white, sprite, x + 1);
+        board.ClearCompletedLines();
+    }
+
+    private static CatResidentView FindView(IReadOnlyList<CatResidentView> views, HomeCatType type)
+    {
+        return views.Single(view => view.CatType == type);
+    }
+
     private static void ValidateTutorialGrowthStep()
     {
         GameObject root = new GameObject("TutorialGrowthStepTest");
@@ -194,8 +317,8 @@ public static class CatHomeValidation
                 string body = (string)stepType.GetProperty("Body").GetValue(step);
                 Check(stepType.GetProperty("Kind").GetValue(step).ToString() == "Message",
                     "Cat growth tutorial is a touch-through explanation");
-                Check(body.Contains("같은 고양이") && body.Contains("3번") && body.Contains("성체"),
-                    "Cat growth tutorial explains the three-clear adult goal");
+                Check(body.Contains("같은 고양이") && body.Contains("2번") && body.Contains("성체"),
+                    "Cat growth tutorial explains the two-clear adult goal");
             }
 
             Check(foundGrowthStep, "Tutorial contains a cat growth explanation");
@@ -356,6 +479,7 @@ public static class CatHomeValidation
 
     private static void ValidateGameplayScenes()
     {
+        const string backgroundPrefabPath = "Assets/_Prefab/BackGround.prefab";
         string[] paths = Enumerable.Range(1, 10).Select(i => "Assets/Scenes/Stage" + i + "Scene.unity")
             .Prepend("Assets/Scenes/GameScene.unity").ToArray();
         Vector2 infiniteTutorialAnchorMin = Vector2.zero;
@@ -379,8 +503,16 @@ public static class CatHomeValidation
             {
                 GameObject[] roots = loaded.GetRootGameObjects();
                 Check(roots.Any(root => root.GetComponentInChildren<GameManager>(true) != null), path + ": GameManager hook");
-                Check(roots.SelectMany(root => root.GetComponentsInChildren<Image>()).Any(image => image.isActiveAndEnabled &&
-                    image.sprite == BlockBlastSpriteLibrary.NightCatHomeBackgroundSprite), path + ": active matching room background");
+                bool hasDirectBackground = roots.Any(root =>
+                    PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(root) == backgroundPrefabPath);
+                if (path == "Assets/Scenes/GameScene.unity")
+                {
+                    Check(hasDirectBackground, path + ": active matching room background");
+                }
+                else
+                {
+                    Check(!hasDirectBackground, path + ": room background is loaded through Addressables");
+                }
 
                 Button tutorialButton = roots.SelectMany(root => root.GetComponentsInChildren<Button>(true))
                     .FirstOrDefault(button => button.name == "TutorialButton");

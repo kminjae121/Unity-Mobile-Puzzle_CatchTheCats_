@@ -22,7 +22,9 @@ namespace _Code.Manager
 
         private StageDefinition _stageDefinition;
         private readonly HashSet<Vector2Int> _remainingCheeseCells = new HashSet<Vector2Int>();
+        private BlockField _blockField;
         private int _usedPlacementCount;
+        private int _extraPlacementCount;
         private int _removedTargetCatCount;
 
         public bool IsStageMode { get; private set; }
@@ -35,7 +37,7 @@ namespace _Code.Manager
         public int TargetCatRemovalCount => IsStageMode ? _stageDefinition.TargetCatRemovalCount : 0;
         public int RemovedTargetCatCount => _removedTargetCatCount;
         public int UsedPlacementCount => _usedPlacementCount;
-        public int MaxPlacementCount => IsStageMode ? _stageDefinition.MaxPlacementCount : 0;
+        public int MaxPlacementCount => IsStageMode ? _stageDefinition.MaxPlacementCount + _extraPlacementCount : 0;
         public int RemainingPlacementCount => MaxPlacementCount > 0 ? Mathf.Max(0, MaxPlacementCount - _usedPlacementCount) : 0;
         public bool IsFailedByPlacementLimit =>
             IsStageMode &&
@@ -48,8 +50,10 @@ namespace _Code.Manager
         public void Initialize(BlockField blockField, GameObject owner)
         {
             IsStageMode = StageRunContext.TryGetSelectedStage(out _stageDefinition);
+            _blockField = blockField;
             _remainingCheeseCells.Clear();
             _usedPlacementCount = 0;
+            _extraPlacementCount = 0;
             _removedTargetCatCount = 0;
 
             if (!IsStageMode || blockField == null)
@@ -73,13 +77,41 @@ namespace _Code.Manager
             }
         }
 
-        public void NotifyClearedPoints(IEnumerable<Vector2Int> clearedPoints)
+        public void NotifyClearedPoints(IEnumerable<Vector2Int> clearedPoints, int cheeseMultiplier = 1)
         {
             if (!IsStageMode || _stageDefinition.GoalType != StageGoalType.Cheese || clearedPoints == null)
                 return;
 
+            int collectedCheeseCount = 0;
             foreach (Vector2Int point in clearedPoints)
-                _remainingCheeseCells.Remove(point);
+            {
+                if (_remainingCheeseCells.Remove(point))
+                    collectedCheeseCount++;
+            }
+
+            int bonusCheeseCount = collectedCheeseCount * (Mathf.Max(1, cheeseMultiplier) - 1);
+            while (bonusCheeseCount-- > 0 && _remainingCheeseCells.Count > 0)
+            {
+                Vector2Int bonusPoint = default;
+                foreach (Vector2Int remainingPoint in _remainingCheeseCells)
+                {
+                    bonusPoint = remainingPoint;
+                    break;
+                }
+
+                _remainingCheeseCells.Remove(bonusPoint);
+                if (_blockField != null && _blockField.TryGetField(bonusPoint, out _Code.Field.Field field))
+                    field.ClearObject();
+            }
+        }
+
+        public bool GrantExtraPlacementAttempt()
+        {
+            if (!IsStageMode || _stageDefinition.GoalType != StageGoalType.Cheese)
+                return false;
+
+            _extraPlacementCount++;
+            return true;
         }
 
         public void NotifyClearedCatSprites(IEnumerable<Sprite> clearedSprites)

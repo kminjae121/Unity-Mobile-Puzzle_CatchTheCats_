@@ -25,6 +25,8 @@ public static class CatHomeAssetBuilder
         if (createCatalog)
             catalog = ScriptableObject.CreateInstance<CatGrowthCatalog>();
 
+        catalog.adultLineCount = 2;
+
         Dictionary<string, Sprite> sprites = AssetDatabase.LoadAllAssetsAtPath(AtlasPath)
             .OfType<Sprite>().ToDictionary(sprite => sprite.name);
         string[] blockNames = { "BlackCatBlockSprite", "WhiteCatBlockSprite", "SphynxCatBlockSprite", "CatBlockSprite" };

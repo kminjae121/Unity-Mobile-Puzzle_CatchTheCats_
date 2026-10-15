@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: Button
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: Button
+  m_GUID: f7c11dc26a50cde408ed0dd27439ca69
+  m_SerializeEntries:
+  - m_GUID: 768b2a73e1774205b61b5da8c6760cb3
+    m_Address: Button/ButtonHighlight
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Button
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8377391a99564fb3a9df3c152fd6dd5a
+    m_Address: Button/ButtonPressed
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Button
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f0e3523dbd1f4424a58cfab9dba3726e
+    m_Address: Button/ButtonDisable
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Button
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f167ebd30ec749f0b3d0f426047057c7
+    m_Address: Button/ButtonStart
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Button
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: fdae6134260846f08baeb225c2ab8183
+    m_Address: Button/ButtonSelected
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Button
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 2a16b88be7162584c93c47281209d1a0, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 858a197c1e1936849817f6461d1dc678, type: 2}
+    - {fileID: 11400000, guid: 09252df7b42501942aca2db24ec3d2b5, type: 2}

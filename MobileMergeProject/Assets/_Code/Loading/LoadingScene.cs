@@ -18,7 +18,9 @@ public class LoadingScene : MonoBehaviour
 
     public UnityEvent EndEvent;
     
-    private bool isLoading = true;
+    private bool isLoading;
+    private bool progressFinished;
+    private bool contentReady;
     
     private void Awake()
     {
@@ -27,15 +29,35 @@ public class LoadingScene : MonoBehaviour
 
     private void StartLoading()
     {
+        isLoading = true;
+        progressFinished = false;
+        contentReady = false;
+        barImg.DOKill();
+        barImg.fillAmount = 0f;
         StartCoroutine(LoadingTxt());
         
         barImg.DOFillAmount(1, loadingSec).SetEase(Ease.InOutCirc)
             .OnComplete(() =>
             {
-                isLoading = false;
+                progressFinished = true;
                 gameObject.SetActive(false);
-                EndEvent?.Invoke();
             });
+    }
+
+    public void CompleteLoading()
+    {
+        contentReady = true;
+        TryFinishLoading();
+    }
+
+    private void TryFinishLoading()
+    {
+        if (!progressFinished || !contentReady)
+            return;
+
+        isLoading = false;
+        gameObject.SetActive(false);
+        EndEvent?.Invoke();
     }
 
 

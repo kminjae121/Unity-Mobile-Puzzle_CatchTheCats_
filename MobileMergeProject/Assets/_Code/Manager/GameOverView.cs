@@ -1,3 +1,4 @@
+using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -12,6 +13,7 @@ namespace _Code.Manager
         [SerializeField] private TextMeshProUGUI scoreValueText;
         [SerializeField] private TextMeshProUGUI bestScoreLabelText;
         [SerializeField] private TextMeshProUGUI bestScoreValueText;
+        [SerializeField] private TextMeshProUGUI reasonText;
         [SerializeField] private Button restartButton;
 
         private const string GameOverTitle = "GAME OVER";
@@ -26,6 +28,7 @@ namespace _Code.Manager
         private TextMeshProUGUI _primaryButtonLabelText;
         private PrimaryButtonAction _primaryButtonAction = PrimaryButtonAction.RestartCurrentScene;
         private string _targetSceneName;
+        private Coroutine _reasonAnimation;
 
         private enum PrimaryButtonAction
         {
@@ -49,12 +52,17 @@ namespace _Code.Manager
 
         public void Show(int score, int bestScore)
         {
-            Show(score, bestScore, GameOverTitle);
+            Show(score, bestScore, GameOverTitle, GameOverReason.NoAvailablePlacement);
+        }
+
+        public void Show(int score, int bestScore, GameOverReason reason)
+        {
+            Show(score, bestScore, GameOverTitle, reason);
         }
 
         public void ShowStageClear(int score, int bestScore)
         {
-            Show(score, bestScore, StageClearTitle);
+            Show(score, bestScore, StageClearTitle, null);
         }
 
         public void ShowStageClearPrompt(int score, int bestScore, string nextSceneName)
@@ -66,10 +74,23 @@ namespace _Code.Manager
                 "\uB2E4\uC74C\uC73C\uB85C \uB118\uC5B4\uAC00\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?",
                 bestScore.ToString(),
                 NextButtonLabel,
-                nextSceneName);
+                nextSceneName,
+                string.Empty);
         }
 
         public void ShowStageFailed(int score, int bestScore, string stageSelectSceneName)
+        {
+            ShowStageFailed(score, bestScore, stageSelectSceneName, GameOverReason.PlacementLimit, 0, 0, 0);
+        }
+
+        public void ShowStageFailed(
+            int score,
+            int bestScore,
+            string stageSelectSceneName,
+            GameOverReason reason,
+            int remainingCheeseCount,
+            int usedPlacementCount,
+            int maxPlacementCount)
         {
             ShowResult(
                 StageFailedTitle,
@@ -78,10 +99,11 @@ namespace _Code.Manager
                 BestScoreLabel,
                 bestScore.ToString(),
                 StageExitButtonLabel,
-                stageSelectSceneName);
+                stageSelectSceneName,
+                BuildReasonMessage(reason, remainingCheeseCount, usedPlacementCount, maxPlacementCount));
         }
 
-        private void Show(int score, int bestScore, string title)
+        private void Show(int score, int bestScore, string title, GameOverReason? reason)
         {
             ShowResult(
                 title,
@@ -90,7 +112,8 @@ namespace _Code.Manager
                 BestScoreLabel,
                 bestScore.ToString(),
                 RetryButtonLabel,
-                null);
+                null,
+                reason.HasValue ? BuildReasonMessage(reason.Value, 0, 0, 0) : string.Empty);
         }
 
         private void ShowResult(
@@ -100,7 +123,8 @@ namespace _Code.Manager
             string bestScoreLabel,
             string bestScoreValue,
             string buttonLabel,
-            string targetSceneName)
+            string targetSceneName,
+            string reasonMessage)
         {
             if (scoreValueText != null)
                 scoreValueText.text = scoreValue;
@@ -126,10 +150,17 @@ namespace _Code.Manager
                 : PrimaryButtonAction.LoadScene;
 
             gameObject.SetActive(true);
+            SetReasonText(reasonMessage);
         }
 
         public void Hide()
         {
+            if (_reasonAnimation != null)
+            {
+                StopCoroutine(_reasonAnimation);
+                _reasonAnimation = null;
+            }
+
             gameObject.SetActive(false);
         }
 
@@ -154,6 +185,43 @@ namespace _Code.Manager
                 SceneManager.LoadScene(currentScene.name);
         }
 
+        private void SetReasonText(string message)
+        {
+            if (reasonText == null)
+                return;
+
+            if (_reasonAnimation != null)
+            {
+                StopCoroutine(_reasonAnimation);
+                _reasonAnimation = null;
+            }
+
+            reasonText.text = message;
+            reasonText.gameObject.SetActive(!string.IsNullOrEmpty(message));
+            reasonText.rectTransform.localScale = Vector3.one;
+
+            if (!string.IsNullOrEmpty(message))
+                _reasonAnimation = StartCoroutine(AnimateReasonText());
+        }
+
+        private IEnumerator AnimateReasonText()
+        {
+            const float duration = 0.24f;
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+                float scale = Mathf.Lerp(1.12f, 1f, Mathf.SmoothStep(0f, 1f, t));
+                reasonText.rectTransform.localScale = Vector3.one * scale;
+                yield return null;
+            }
+
+            reasonText.rectTransform.localScale = Vector3.one;
+            _reasonAnimation = null;
+        }
+
         private void ResolveOptionalReferences()
         {
             if (scoreLabelText == null)
@@ -161,6 +229,12 @@ namespace _Code.Manager
 
             if (bestScoreLabelText == null)
                 bestScoreLabelText = FindText("GameOverBestScoreLabelTxt");
+
+            if (reasonText == null)
+                reasonText = FindText("GameOverReasonTxt");
+
+            if (reasonText == null)
+                reasonText = CreateReasonText(transform);
 
             if (_primaryButtonLabelText == null && restartButton != null)
                 _primaryButtonLabelText = restartButton.GetComponentInChildren<TextMeshProUGUI>(true);
@@ -173,6 +247,35 @@ namespace _Code.Manager
         {
             Transform child = transform.Find(objectName);
             return child != null ? child.GetComponent<TextMeshProUGUI>() : null;
+        }
+
+        private TextMeshProUGUI CreateReasonText(Transform parent)
+        {
+            GameObject labelObject = new GameObject("GameOverReasonTxt", typeof(RectTransform), typeof(TextMeshProUGUI));
+            RectTransform rectTransform = labelObject.GetComponent<RectTransform>();
+            rectTransform.SetParent(parent, false);
+            rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+            rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            rectTransform.anchoredPosition = new Vector2(0f, 205f);
+            rectTransform.sizeDelta = new Vector2(820f, 160f);
+
+            TextMeshProUGUI text = labelObject.GetComponent<TextMeshProUGUI>();
+            if (titleText != null && titleText.font != null)
+                text.font = titleText.font;
+
+            if (titleText != null && titleText.fontSharedMaterial != null)
+                text.fontSharedMaterial = titleText.fontSharedMaterial;
+
+            text.fontSize = 52f;
+            text.fontWeight = FontWeight.Bold;
+            text.color = new Color(1f, 0.87f, 0.42f, 1f);
+            text.alignment = TextAlignmentOptions.Center;
+            text.textWrappingMode = TextWrappingModes.Normal;
+            text.lineSpacing = 4f;
+            text.margin = new Vector4(24f, 10f, 24f, 10f);
+            text.raycastTarget = false;
+            return text;
         }
 
         private TextMeshProUGUI CreateButtonLabel(Transform parent)
@@ -198,6 +301,20 @@ namespace _Code.Manager
             text.alignment = TextAlignmentOptions.Center;
             text.raycastTarget = false;
             return text;
+        }
+
+        private static string BuildReasonMessage(
+            GameOverReason reason,
+            int remainingCheeseCount,
+            int usedPlacementCount,
+            int maxPlacementCount)
+        {
+            if (reason == GameOverReason.PlacementLimit)
+            {
+                return $"\uBC30\uCE58 \uC81C\uD55C\uC744 \uBAA8\uB450 \uC0AC\uC6A9\uD588\uC9C0\uB9CC \uCE58\uC988\uAC00 \uB0A8\uC544 \uC788\uC5B4\uC694.\n\uB0A8\uC740 \uCE58\uC988 {remainingCheeseCount}\uAC1C  \u00B7  \uBC30\uCE58 {usedPlacementCount}/{maxPlacementCount}";
+            }
+
+            return "\uB354 \uC774\uC0C1 \uBE14\uB7ED\uC744 \uB193\uC744 \uC218 \uC788\uB294 \uACF5\uAC04\uC774 \uC5C6\uC5B4\uC694.";
         }
     }
 }

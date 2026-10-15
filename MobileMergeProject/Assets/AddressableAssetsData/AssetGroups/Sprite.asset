@@ -1,0 +1,95 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: Sprite
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: Sprite
+  m_GUID: 418f8bad81f21b0479dea2355865bb3a
+  m_SerializeEntries:
+  - m_GUID: 282f4bddf9411db4aa93175486c5f1c1
+    m_Address: Sprite/CatSingle
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Sprite
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3faf9827ea07405a9985e8649582f1bc
+    m_Address: Sprite/TowerFrame
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Sprite
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6a8eab70efbf4cceb0f7455997106b28
+    m_Address: Sprite/SphynxCat
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Sprite
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 7b8f2bcb52404fae8b945b83db4334b5
+    m_Address: Sprite/BlackCat
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Sprite
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 97472cb7513eb744599702b60642fe75
+    m_Address: Sprite/SphyncSingle
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Sprite
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 983914127ce0407394d0d46b0d8418d4
+    m_Address: Sprite/Cat
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Sprite
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 9b6de584726748cdbce4c85b7417d810
+    m_Address: Sprite/WhiteCat
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Sprite
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b7d74e274ce048a58c3294e981a9f057
+    m_Address: Sprite/Cheese
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Sprite
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b8f2f6ef9baf4d9489a9f9c4760dbb41
+    m_Address: Sprite/BlockSquare
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Sprite
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: dc23c5a149308a5479df941221d9abad
+    m_Address: Sprite/BlackCatSingle
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Sprite
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f1da05ed494c4dfa84958a0c39d9d288
+    m_Address: Sprite/MouseHole
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Sprite
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f9e4819075939114d83f4e1db3e29170
+    m_Address: Sprite/WhiteCatSingle
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Sprite
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 2a16b88be7162584c93c47281209d1a0, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 6a28d6586467ef74ba8aa9fc4712a2be, type: 2}
+    - {fileID: 11400000, guid: 417681e90f2d62340aa61fc06883bbd5, type: 2}

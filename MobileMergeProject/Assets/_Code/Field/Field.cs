@@ -6,6 +6,8 @@ namespace _Code.Field
 {
     public class Field : MonoBehaviour
     {
+        private const int InstalledBlockSortingOrder = 40;
+
         [field: SerializeField] public Vector2Int Point { get; private set; }
         [SerializeField] private SpriteRenderer _backgroundRenderer;
         [SerializeField] private SpriteRenderer _objectRenderer;
@@ -18,6 +20,7 @@ namespace _Code.Field
         private Sprite _currentSprite;
         private Sprite _visualSprite;
         private int _currentGroupId = -1;
+        private int _originalGroupId = -1;
         private bool _isStageCheese;
         private SpriteRenderer _objectRendererTemplate;
         private Vector3 _objectRendererHomeLocalPosition;
@@ -33,6 +36,7 @@ namespace _Code.Field
         public Sprite CurrentSprite => _currentSprite;
         public Sprite VisualSprite => _visualSprite;
         public int CurrentGroupId => _currentGroupId;
+        public int OriginalGroupId => _originalGroupId;
         public bool IsStageCheese => _isStageCheese;
         public SpriteRenderer ObjectRendererTemplate => _objectRendererTemplate != null ? _objectRendererTemplate : _objectRenderer;
         public Vector3 ObjectRendererWorldPosition => _objectRenderer != null ? _objectRenderer.transform.position : GetObjectRendererHomeWorldPosition();
@@ -83,6 +87,7 @@ namespace _Code.Field
             _currentSprite = sprite != null ? sprite : BlockBlastSpriteLibrary.CatBlockSprite;
             _visualSprite = _currentSprite;
             _currentGroupId = groupId;
+            _originalGroupId = groupId;
             _isStageCheese = isStageCheese;
 
             if (_objectRenderer == null)
@@ -95,6 +100,7 @@ namespace _Code.Field
 
             bool hasCatSprite = ApplyObjectSprite();
             _objectRenderer.color = hasCatSprite ? Color.white : color;
+            _objectRenderer.sortingOrder = InstalledBlockSortingOrder;
             _objectRenderer.enabled = true;
 
             MoveObjectRenderer(moveFromWorldPosition);
@@ -108,6 +114,7 @@ namespace _Code.Field
             _currentSprite = null;
             _visualSprite = null;
             _currentGroupId = -1;
+            _originalGroupId = -1;
             _isStageCheese = false;
 
             ReleaseObjectRenderer();
@@ -117,6 +124,12 @@ namespace _Code.Field
         {
             if (_isHaveObject && !_isStageCheese)
                 _currentGroupId = groupId;
+        }
+
+        public void RestoreOriginalGroup(int groupId)
+        {
+            if (_isHaveObject && !_isStageCheese)
+                _originalGroupId = groupId;
         }
 
         public void SetVisualSprite(Sprite sprite)

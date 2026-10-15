@@ -94,6 +94,18 @@ namespace _Code.Manager
                 Save();
         }
 
+        public void ResetCatGrowthLine(int catIndex)
+        {
+            if (catIndex < 0 || catIndex >= CatTypeCount)
+                throw new ArgumentOutOfRangeException(nameof(catIndex));
+
+            if (_saveData.CatGrowthLines[catIndex] == 0)
+                return;
+
+            _saveData.CatGrowthLines[catIndex] = 0;
+            Save();
+        }
+
         public int GetCatGrowthLines(int catIndex)
         {
             if (catIndex < 0 || catIndex >= CatTypeCount)

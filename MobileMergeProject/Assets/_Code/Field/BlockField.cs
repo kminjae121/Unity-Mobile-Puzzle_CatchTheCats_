@@ -21,6 +21,7 @@ namespace _Code.Field
         public float CellSize => _cellSize;
         public IReadOnlyList<Field> Fields => _fields;
         public event Action<IReadOnlyList<Sprite>> MatchingCatLinesCleared;
+        public event Action SingleCellBlocksCreated;
 
         private void Awake()
         {
@@ -124,7 +125,7 @@ namespace _Code.Field
             }
         }
 
-        public bool Compact(Vector2Int direction)
+        public bool Compact(Vector2Int direction, bool groupByOriginalObject = false)
         {
             if (direction == Vector2Int.zero)
                 return false;
@@ -141,7 +142,7 @@ namespace _Code.Field
                 hasMovedThisPass = false;
                 guard++;
 
-                List<BlockGroup> groups = GetBlockGroups();
+                List<BlockGroup> groups = GetBlockGroups(groupByOriginalObject);
                 SortGroups(groups, direction);
 
                 foreach (BlockGroup group in groups)
@@ -249,7 +250,10 @@ namespace _Code.Field
                 field.ClearObject();
             }
 
-            SplitDamagedGroupsIntoCells(damagedGroupIds);
+            bool createdSingleCellBlocks = SplitDamagedGroupsIntoCells(damagedGroupIds);
+
+            if (createdSingleCellBlocks)
+                SingleCellBlocksCreated?.Invoke();
 
             // Capture each row/column before clearing, so intersecting lines count independently.
             if (matchingLineSprites.Count > 0)
@@ -283,6 +287,39 @@ namespace _Code.Field
                 field.ClearObject();
 
             _nextGroupId = 1;
+        }
+
+        public void ClearCatBlocks()
+        {
+            foreach (Field field in _fields)
+            {
+                if (!field.IsEmpty && !field.IsStageCheese)
+                    field.ClearObject();
+            }
+        }
+
+        public Sprite GetMostCommonCatSprite()
+        {
+            Dictionary<Sprite, int> spriteCounts = new Dictionary<Sprite, int>();
+            Sprite mostCommonSprite = null;
+            int highestCount = 0;
+
+            foreach (Field field in _fields)
+            {
+                if (field.IsEmpty || field.IsStageCheese || field.CurrentSprite == null)
+                    continue;
+
+                spriteCounts.TryGetValue(field.CurrentSprite, out int count);
+                count++;
+                spriteCounts[field.CurrentSprite] = count;
+                if (count > highestCount)
+                {
+                    highestCount = count;
+                    mostCommonSprite = field.CurrentSprite;
+                }
+            }
+
+            return mostCommonSprite;
         }
 
         public bool HasAnyPlacement(IInstallable installable)
@@ -351,7 +388,7 @@ namespace _Code.Field
             return true;
         }
 
-        private List<BlockGroup> GetBlockGroups()
+        private List<BlockGroup> GetBlockGroups(bool groupByOriginalObject = false)
         {
             Dictionary<int, BlockGroup> groupsById = new Dictionary<int, BlockGroup>();
 
@@ -360,7 +397,7 @@ namespace _Code.Field
                 if (field.IsEmpty || field.IsStageCheese)
                     continue;
 
-                int groupId = field.CurrentGroupId;
+                int groupId = groupByOriginalObject ? field.OriginalGroupId : field.CurrentGroupId;
                 if (!groupsById.TryGetValue(groupId, out BlockGroup group))
                 {
                     group = new BlockGroup(groupId);
@@ -373,10 +410,12 @@ namespace _Code.Field
             return new List<BlockGroup>(groupsById.Values);
         }
 
-        private void SplitDamagedGroupsIntoCells(HashSet<int> damagedGroupIds)
+        private bool SplitDamagedGroupsIntoCells(HashSet<int> damagedGroupIds)
         {
             if (damagedGroupIds == null || damagedGroupIds.Count == 0)
-                return;
+                return false;
+
+            bool createdSingleCellBlocks = false;
 
             foreach (Field field in _fields)
             {
@@ -385,7 +424,10 @@ namespace _Code.Field
 
                 field.ReassignGroup(_nextGroupId++);
                 field.SetVisualSprite(BlockBlastSpriteLibrary.GetSingleCellCatSprite(field.CurrentSprite));
+                createdSingleCellBlocks = true;
             }
+
+            return createdSingleCellBlocks;
         }
 
         private bool CanMoveGroup(BlockGroup group, Vector2Int direction)
@@ -418,7 +460,8 @@ namespace _Code.Field
 
                 if (TryGetField(targetPoint, out Field field))
                 {
-                    field.SetObject(cell.Object, cell.Color, cell.Sprite, group.Id, cell.VisualWorldPosition);
+                    field.SetObject(cell.Object, cell.Color, cell.Sprite, cell.GroupId, cell.VisualWorldPosition);
+                    field.RestoreOriginalGroup(cell.OriginalGroupId);
                     field.SetVisualSprite(cell.VisualSprite);
                 }
             }
@@ -459,6 +502,8 @@ namespace _Code.Field
                 Sprite = field.CurrentSprite;
                 VisualSprite = field.VisualSprite;
                 VisualWorldPosition = field.ObjectRendererWorldPosition;
+                GroupId = field.CurrentGroupId;
+                OriginalGroupId = field.OriginalGroupId;
             }
 
             public Vector2Int Point { get; }
@@ -467,6 +512,8 @@ namespace _Code.Field
             public Sprite Sprite { get; }
             public Sprite VisualSprite { get; }
             public Vector3 VisualWorldPosition { get; }
+            public int GroupId { get; }
+            public int OriginalGroupId { get; }
         }
 
         private sealed class BlockGroup

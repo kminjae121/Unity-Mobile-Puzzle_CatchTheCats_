@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: Icon
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: Icon
+  m_GUID: b21eb89dfa0bf444a8a22152bc09c3a3
+  m_SerializeEntries:
+  - m_GUID: aa1e3e6f49244d24b89a8d404f6cf6bc
+    m_Address: Icon/Paw
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Icon
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: acdbf631e90a42a3b069b24206271312
+    m_Address: Icon/Sparkle
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Icon
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: bb29be6f478341e6a6b3884754c4c61a
+    m_Address: Icon/GameOverIcon
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Icon
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 2a16b88be7162584c93c47281209d1a0, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: a4a9620101c19194b9008a5a00f5aebc, type: 2}
+    - {fileID: 11400000, guid: 716b5280a85024e459a4d6a506778960, type: 2}

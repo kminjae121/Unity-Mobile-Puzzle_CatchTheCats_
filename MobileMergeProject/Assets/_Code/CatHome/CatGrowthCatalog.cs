@@ -26,7 +26,7 @@ namespace _Code.CatHome
         }
 
         [Min(1)] public int juvenileLineCount = 1;
-        [Min(2)] public int adultLineCount = 3;
+        [Min(2)] public int adultLineCount = 2;
         public CatDefinition[] cats = Array.Empty<CatDefinition>();
 
         public int GetStage(int lineCount)

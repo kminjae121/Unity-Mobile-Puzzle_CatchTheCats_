@@ -45,6 +45,6 @@ EditorBuildSettings:
     path: Assets/Scenes/Stage10Scene.unity
     guid: fbb80e26f66c433fa0c557dcad0908d0
   m_configObjects:
+    com.unity.addressableassets: {fileID: 11400000, guid: 42141aabaefede741b0a47b06c283afb, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   m_UseUCBPForAssetBundles: 0
-

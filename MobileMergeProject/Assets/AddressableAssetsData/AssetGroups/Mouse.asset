@@ -1,0 +1,149 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: Mouse
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: Mouse
+  m_GUID: 9e362e15a7304a94695ad6792e911d33
+  m_SerializeEntries:
+  - m_GUID: 08027935772d406eb5add11fa66752b3
+    m_Address: Mouse/MouseIdle_3
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Mouse
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1937cc29a7624cc79b01d805b87f8b10
+    m_Address: Mouse/MouseMoveUp_0
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Mouse
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2662705709624ee3ad4d13a9db4caa5c
+    m_Address: Mouse/MouseMoveDown_0
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Mouse
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2abdc7c92deb45d988374fd26b0e8da2
+    m_Address: Mouse/MouseMoveLeft_3
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Mouse
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 32af243345b7466aaad6c3aa4b539240
+    m_Address: Mouse/MouseMoveRight_1
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Mouse
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4c5776430ebb45c3827be3c3cd98427c
+    m_Address: Mouse/MouseMoveRight_0
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Mouse
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5fd7a350e0f54ebf8ea201755a6e78ce
+    m_Address: Mouse/MouseIdle_2
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Mouse
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 617277ea49cb445895439c29cbbe9448
+    m_Address: Mouse/MouseMoveDown_1
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Mouse
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 61e0afae5d07474d9323f0582400f655
+    m_Address: Mouse/MouseMoveRight_3
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Mouse
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 677f8853dd4e43989a6e3e8d53bb465e
+    m_Address: Mouse/MouseMoveUp_3
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Mouse
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6ccbeb9da5d54bbb811adf269b3864a6
+    m_Address: Mouse/MouseMoveLeft_1
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Mouse
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 75c8f5d5bb294cac87fba179265d1fde
+    m_Address: Mouse/MouseMoveDown_3
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Mouse
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 88cbf074e73546b992a8259186efa419
+    m_Address: Mouse/MouseMoveUp_1
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Mouse
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 898f6b2ca39542c296983222fcdb179c
+    m_Address: Mouse/MouseMoveDown_2
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Mouse
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 8fe22b26bd314212bc8181dcb1320750
+    m_Address: Mouse/MouseMoveLeft_0
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Mouse
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 916f8c23234c4200ae60aba6f67ecf52
+    m_Address: Mouse/MouseMoveLeft_2
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Mouse
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a6410350149143f8b8660285e3fcd3a9
+    m_Address: Mouse/MouseIdle_1
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Mouse
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: adf11f989157414d93dab13694ee106d
+    m_Address: Mouse/MouseSprite
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Mouse
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: eafad205d4cb46d7a1ace6bd2e2c073f
+    m_Address: Mouse/MouseIdle_0
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Mouse
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f96684a7d1a847f49bc2541ac9154b9f
+    m_Address: Mouse/MouseMoveUp_2
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Mouse
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: fb4654134ab84065a04a883b5be4e6c1
+    m_Address: Mouse/MouseMoveRight_2
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Mouse
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 2a16b88be7162584c93c47281209d1a0, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 8e0994f3c92dd7e48918506249721463, type: 2}
+    - {fileID: 11400000, guid: 41fd7e98d324b3043a7867e868cfbfc5, type: 2}

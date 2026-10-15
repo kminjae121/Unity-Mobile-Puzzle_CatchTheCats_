@@ -2,9 +2,6 @@ using System.Collections.Generic;
 using _Code.Block;
 using _Code.Field;
 using _Code.SO;
-using Code.Core;
-using Code.Core.Events.Bus;
-using Code.Core.Events.Bus.TextEvent;
 using UnityEngine;
 using MouseView = _Code.Mouse.Mouse;
 
@@ -63,6 +60,7 @@ namespace _Code.Manager
             ICollection<Vector3> clearedWorldPositions,
             ICollection<Vector2Int> clearedPoints,
             ICollection<Sprite> clearedSprites,
+            bool groupByOriginalObject,
             out BoardShiftResult result)
         {
             result = default;
@@ -76,34 +74,10 @@ namespace _Code.Manager
             if (mouse != null)
                 mouse.TryMove(direction, blockField);
 
-            bool moved = blockField.Compact(direction);
+            bool moved = blockField.Compact(direction, groupByOriginalObject);
             int clearedLines = blockField.ClearCompletedLines(clearedWorldPositions, clearedPoints, clearedSprites);
             bool hasAnyRemainingPlacement = randomBlockManager.HasAnyAvailablePlacement(blockField);
             result = new BoardShiftResult(moved, clearedLines, hasAnyRemainingPlacement);
-            
-            switch (clearedLines)
-            {
-                case 1:
-                    Bus<CamShakeEvent>.Raise(new CamShakeEvent(0.1f));
-                    SoundManager.Instance.PlayClip("ClearSound");
-                    break;
-                case 2:
-                    Bus<CamShakeEvent>.Raise(new CamShakeEvent(0.2f));
-                    SoundManager.Instance.PlayClip("ClearSound");
-                    break;
-                case 3:
-                    Bus<CamShakeEvent>.Raise(new CamShakeEvent(0.3f));
-                    SoundManager.Instance.PlayClip("ClearSound");
-                    break;
-                case 4:
-                    Bus<CamShakeEvent>.Raise(new CamShakeEvent(0.4f));
-                    SoundManager.Instance.PlayClip("ClearSound");
-                    break;
-            }
-
-            if (clearedLines > 0)
-                Bus<EventTxtEvent>.Raise(new EventTxtEvent(TextType.PointX2));
-
             return true;
         }
 

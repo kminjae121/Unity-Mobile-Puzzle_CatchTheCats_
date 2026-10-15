@@ -1,29 +1,33 @@
 using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.AsyncOperations;
 
 namespace _Code.Block
 {
     public static class BlockBlastSpriteLibrary
     {
-        private const string CatBlockSpritePath = "BlockBlast/CatBlockSprite";
-        private const string BlackCatBlockSpritePath = "BlockBlast/BlackCatBlockSprite";
-        private const string WhiteCatBlockSpritePath = "BlockBlast/WhiteCatBlockSprite";
-        private const string SphynxCatBlockSpritePath = "BlockBlast/SphynxCatBlockSprite";
-        private const string BlackCatBlockSingleSpritePath = "BlockBlast/BlackCatBlockSpriteSingle";
-        private const string WhiteCatBlockSingleSpritePath = "BlockBlast/WhiteCatBlockSpriteSingle";
-        private const string SphynxCatBlockSingleSpritePath = "BlockBlast/SphynxCatBlockSpriteSingle";
-        private const string CatBlockSingleSpritePath = "BlockBlast/CatBlockSpriteSingle";
-        private const string CheeseBlockSpritePath = "BlockBlast/CheeseBlockSprite";
-        private const string MouseSpritePath = "BlockBlast/MouseSprite";
-        private const string MouseIdleSpritePathPrefix = "BlockBlast/MouseIdle_";
-        private const string MouseMoveRightSpritePathPrefix = "BlockBlast/MouseMoveRight_";
-        private const string MouseMoveLeftSpritePathPrefix = "BlockBlast/MouseMoveLeft_";
-        private const string MouseMoveUpSpritePathPrefix = "BlockBlast/MouseMoveUp_";
-        private const string MouseMoveDownSpritePathPrefix = "BlockBlast/MouseMoveDown_";
-        private const string CleanCatHomeBackgroundSpritePath = "BlockBlast/CleanCatHomeBackground";
-        private const string NightCatHomeBackgroundSpritePath = "BlockBlast/NightCatHomeBackground";
-        private const string CatTowerFrameSpritePath = "BlockBlast/CatTowerFrameSprite";
-        private const string MouseHoleFrameSpritePath = "BlockBlast/MouseHoleFrameSprite";
+        private const string CatBlockSpritePath = "Sprite/Cat";
+        private const string BlackCatBlockSpritePath = "Sprite/BlackCat";
+        private const string WhiteCatBlockSpritePath = "Sprite/WhiteCat";
+        private const string SphynxCatBlockSpritePath = "Sprite/SphynxCat";
+        private const string BlackCatBlockSingleSpritePath = "Sprite/BlackCatSingle";
+        private const string WhiteCatBlockSingleSpritePath = "Sprite/WhiteCatSingle";
+        private const string SphynxCatBlockSingleSpritePath = "Sprite/SphyncSingle";
+        private const string CatBlockSingleSpritePath = "Sprite/CatSingle";
+        private const string CheeseBlockSpritePath = "Sprite/Cheese";
+        private const string MouseSpritePath = "Mouse/MouseSprite";
+        private const string MouseIdleSpritePathPrefix = "Mouse/MouseIdle_";
+        private const string MouseMoveRightSpritePathPrefix = "Mouse/MouseMoveRight_";
+        private const string MouseMoveLeftSpritePathPrefix = "Mouse/MouseMoveLeft_";
+        private const string MouseMoveUpSpritePathPrefix = "Mouse/MouseMoveUp_";
+        private const string MouseMoveDownSpritePathPrefix = "Mouse/MouseMoveDown_";
+        private const string CleanCatHomeBackgroundSpritePath = "BackGround/CleanHomeBackGround";
+        private const string NightCatHomeBackgroundSpritePath = "BackGround/NightCatHome";
+        private const string CatTowerFrameSpritePath = "Sprite/TowerFrame";
+        private const string MouseHoleFrameSpritePath = "Sprite/MouseHole";
 
         private static Sprite _catBlockSprite;
         private static Sprite _blackCatBlockSprite;
@@ -45,16 +49,22 @@ namespace _Code.Block
         private static Sprite _nightCatHomeBackgroundSprite;
         private static Sprite _catTowerFrameSprite;
         private static Sprite _mouseHoleFrameSprite;
+        private static Task _initializationTask;
 
-        public static Sprite CatBlockSprite => LoadSprite(CatBlockSpritePath, ref _catBlockSprite) ?? GetFirstCatBlockSprite();
-        public static Sprite CheeseBlockSprite => LoadSprite(CheeseBlockSpritePath, ref _cheeseBlockSprite) ?? CatBlockSprite;
+        public static Sprite CatBlockSprite => LoadAddressableSprite(CatBlockSpritePath, ref _catBlockSprite) ?? GetFirstCatBlockSprite();
+        public static Sprite CheeseBlockSprite => LoadAddressableSprite(CheeseBlockSpritePath, ref _cheeseBlockSprite) ?? CatBlockSprite;
         public static Sprite[] CatBlockSprites => GetCatBlockSprites();
-        public static Sprite MouseSprite => LoadSprite(MouseSpritePath, ref _mouseSprite);
+        public static Sprite MouseSprite => LoadAddressableSprite(MouseSpritePath, ref _mouseSprite);
         public static Sprite[] MouseIdleSprites => LoadSpriteSequence(MouseIdleSpritePathPrefix, ref _mouseIdleSprites);
-        public static Sprite CleanCatHomeBackgroundSprite => LoadSprite(CleanCatHomeBackgroundSpritePath, ref _cleanCatHomeBackgroundSprite);
-        public static Sprite NightCatHomeBackgroundSprite => LoadSprite(NightCatHomeBackgroundSpritePath, ref _nightCatHomeBackgroundSprite) ?? CleanCatHomeBackgroundSprite;
-        public static Sprite CatTowerFrameSprite => LoadSprite(CatTowerFrameSpritePath, ref _catTowerFrameSprite);
-        public static Sprite MouseHoleFrameSprite => LoadSprite(MouseHoleFrameSpritePath, ref _mouseHoleFrameSprite) ?? CatTowerFrameSprite;
+        public static Sprite CleanCatHomeBackgroundSprite => LoadAddressableSprite(CleanCatHomeBackgroundSpritePath, ref _cleanCatHomeBackgroundSprite);
+        public static Sprite NightCatHomeBackgroundSprite => LoadAddressableSprite(NightCatHomeBackgroundSpritePath, ref _nightCatHomeBackgroundSprite) ?? CleanCatHomeBackgroundSprite;
+        public static Sprite CatTowerFrameSprite => LoadAddressableSprite(CatTowerFrameSpritePath, ref _catTowerFrameSprite);
+        public static Sprite MouseHoleFrameSprite => LoadAddressableSprite(MouseHoleFrameSpritePath, ref _mouseHoleFrameSprite) ?? CatTowerFrameSprite;
+
+        public static Task InitializeAsync()
+        {
+            return _initializationTask ??= InitializeAddressableSpritesAsync();
+        }
 
         public static Sprite GetRandomCatBlockSprite()
         {
@@ -67,17 +77,17 @@ namespace _Code.Block
             if (sprite == null)
                 return null;
 
-            if (sprite == LoadSprite(BlackCatBlockSpritePath, ref _blackCatBlockSprite))
-                return LoadSprite(BlackCatBlockSingleSpritePath, ref _blackCatBlockSingleSprite) ?? sprite;
+            if (sprite == LoadAddressableSprite(BlackCatBlockSpritePath, ref _blackCatBlockSprite))
+                return LoadAddressableSprite(BlackCatBlockSingleSpritePath, ref _blackCatBlockSingleSprite) ?? sprite;
 
-            if (sprite == LoadSprite(WhiteCatBlockSpritePath, ref _whiteCatBlockSprite))
-                return LoadSprite(WhiteCatBlockSingleSpritePath, ref _whiteCatBlockSingleSprite) ?? sprite;
+            if (sprite == LoadAddressableSprite(WhiteCatBlockSpritePath, ref _whiteCatBlockSprite))
+                return LoadAddressableSprite(WhiteCatBlockSingleSpritePath, ref _whiteCatBlockSingleSprite) ?? sprite;
 
-            if (sprite == LoadSprite(SphynxCatBlockSpritePath, ref _sphynxCatBlockSprite))
-                return LoadSprite(SphynxCatBlockSingleSpritePath, ref _sphynxCatBlockSingleSprite) ?? sprite;
+            if (sprite == LoadAddressableSprite(SphynxCatBlockSpritePath, ref _sphynxCatBlockSprite))
+                return LoadAddressableSprite(SphynxCatBlockSingleSpritePath, ref _sphynxCatBlockSingleSprite) ?? sprite;
 
-            if (sprite == LoadSprite(CatBlockSpritePath, ref _catBlockSprite))
-                return LoadSprite(CatBlockSingleSpritePath, ref _catBlockSingleSprite) ?? sprite;
+            if (sprite == LoadAddressableSprite(CatBlockSpritePath, ref _catBlockSprite))
+                return LoadAddressableSprite(CatBlockSingleSpritePath, ref _catBlockSingleSprite) ?? sprite;
 
             return sprite;
         }
@@ -105,17 +115,17 @@ namespace _Code.Block
 
             List<Sprite> sprites = new List<Sprite>
             {
-                LoadSprite(BlackCatBlockSpritePath, ref _blackCatBlockSprite),
-                LoadSprite(WhiteCatBlockSpritePath, ref _whiteCatBlockSprite),
-                LoadSprite(SphynxCatBlockSpritePath, ref _sphynxCatBlockSprite),
-                LoadSprite(CatBlockSpritePath, ref _catBlockSprite)
+                LoadAddressableSprite(BlackCatBlockSpritePath, ref _blackCatBlockSprite),
+                LoadAddressableSprite(WhiteCatBlockSpritePath, ref _whiteCatBlockSprite),
+                LoadAddressableSprite(SphynxCatBlockSpritePath, ref _sphynxCatBlockSprite),
+                LoadAddressableSprite(CatBlockSpritePath, ref _catBlockSprite)
             };
 
             sprites.RemoveAll(sprite => sprite == null);
 
             if (sprites.Count == 0)
             {
-                Sprite fallback = LoadSprite(CatBlockSpritePath, ref _catBlockSprite);
+                Sprite fallback = LoadAddressableSprite(CatBlockSpritePath, ref _catBlockSprite);
 
                 if (fallback != null)
                     sprites.Add(fallback);
@@ -131,11 +141,44 @@ namespace _Code.Block
             return sprites.Length > 0 ? sprites[0] : null;
         }
 
-        private static Sprite LoadSprite(string path, ref Sprite sprite)
+        private static async Task InitializeAddressableSpritesAsync()
         {
-            if (sprite == null)
-                sprite = Resources.Load<Sprite>(path);
+            _catBlockSprite = await LoadSprite(CatBlockSpritePath);
+            _blackCatBlockSprite = await LoadSprite(BlackCatBlockSpritePath);
+            _whiteCatBlockSprite = await LoadSprite(WhiteCatBlockSpritePath);
+            _sphynxCatBlockSprite = await LoadSprite(SphynxCatBlockSpritePath);
+            _blackCatBlockSingleSprite = await LoadSprite(BlackCatBlockSingleSpritePath);
+            _whiteCatBlockSingleSprite = await LoadSprite(WhiteCatBlockSingleSpritePath);
+            _sphynxCatBlockSingleSprite = await LoadSprite(SphynxCatBlockSingleSpritePath);
+            _catBlockSingleSprite = await LoadSprite(CatBlockSingleSpritePath);
+            _cheeseBlockSprite = await LoadSprite(CheeseBlockSpritePath);
+            _mouseSprite = await LoadSprite(MouseSpritePath);
+            _mouseIdleSprites = await LoadSpriteSequenceAsync(MouseIdleSpritePathPrefix);
+            _mouseMoveRightSprites = await LoadSpriteSequenceAsync(MouseMoveRightSpritePathPrefix);
+            _mouseMoveLeftSprites = await LoadSpriteSequenceAsync(MouseMoveLeftSpritePathPrefix);
+            _mouseMoveUpSprites = await LoadSpriteSequenceAsync(MouseMoveUpSpritePathPrefix);
+            _mouseMoveDownSprites = await LoadSpriteSequenceAsync(MouseMoveDownSpritePathPrefix);
+            _cleanCatHomeBackgroundSprite = await LoadSprite(CleanCatHomeBackgroundSpritePath);
+            _nightCatHomeBackgroundSprite = await LoadSprite(NightCatHomeBackgroundSpritePath);
+            _catTowerFrameSprite = await LoadSprite(CatTowerFrameSpritePath);
+            _mouseHoleFrameSprite = await LoadSprite(MouseHoleFrameSpritePath);
+            _catBlockSprites = null;
+        }
 
+        private static async Task<Sprite> LoadSprite(string path)
+        {
+            AsyncOperationHandle<Sprite> handle = Addressables.LoadAssetAsync<Sprite>(path);
+
+            return await handle.Task;
+        }
+
+        private static Sprite LoadAddressableSprite(string path, ref Sprite sprite)
+        {
+            if (sprite != null)
+                return sprite;
+
+            AsyncOperationHandle<Sprite> handle = Addressables.LoadAssetAsync<Sprite>(path);
+            sprite = handle.WaitForCompletion();
             return sprite;
         }
 
@@ -144,20 +187,21 @@ namespace _Code.Block
             if (sprites != null)
                 return sprites;
 
-            List<Sprite> loadedSprites = new List<Sprite>();
+            sprites = new Sprite[4];
 
             for (int i = 0; i < 4; i++)
-            {
-                Sprite sprite = Resources.Load<Sprite>($"{pathPrefix}{i}");
+                sprites[i] = LoadAddressableSprite($"{pathPrefix}{i}", ref sprites[i]);
 
-                if (sprite != null)
-                    loadedSprites.Add(sprite);
-            }
+            return sprites;
+        }
 
-            if (loadedSprites.Count == 0 && MouseSprite != null)
-                loadedSprites.Add(MouseSprite);
+        private static async Task<Sprite[]> LoadSpriteSequenceAsync(string pathPrefix)
+        {
+            Sprite[] sprites = new Sprite[4];
 
-            sprites = loadedSprites.ToArray();
+            for (int i = 0; i < sprites.Length; i++)
+                sprites[i] = await LoadSprite($"{pathPrefix}{i}");
+
             return sprites;
         }
 

@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using _Code.Block;
 using _Code.Field;
@@ -7,9 +8,19 @@ namespace _Code.Manager
 {
     public class RandomBlockManager : MonoBehaviour
     {
+        private const float FeaturedCatChance = 0.4f;
+
+        private static readonly string[][] TutorialShapeSets =
+        {
+            new[] { "Two Horizontal", "Two Horizontal", "Two Horizontal" },
+            new[] { "S", "Two Horizontal", "Single" }
+        };
+
         [SerializeField] private BlockPiece[] _pieces;
 
         private readonly List<BlockShape> _installableShapes = new List<BlockShape>();
+        private bool _tutorialMode;
+        private int _tutorialSetIndex;
 
         private readonly Color[] _colors =
         {
@@ -22,6 +33,12 @@ namespace _Code.Manager
         };
 
         public IReadOnlyList<BlockPiece> Pieces => _pieces;
+
+        public void SetTutorialMode(bool enabled)
+        {
+            _tutorialMode = enabled;
+            _tutorialSetIndex = 0;
+        }
 
         public void Initialize(BlockPiece[] pieces)
         {
@@ -40,21 +57,59 @@ namespace _Code.Manager
             if (_pieces == null || blockField == null)
                 return false;
 
+            if (_tutorialMode && _tutorialSetIndex < TutorialShapeSets.Length)
+            {
+                GiveTutorialSet(TutorialShapeSets[_tutorialSetIndex]);
+                _tutorialSetIndex++;
+                return true;
+            }
+
+            _tutorialMode = false;
+
             CacheInstallableShapes(blockField);
 
             if (_installableShapes.Count == 0)
                 return false;
 
+            Sprite featuredCatSprite = blockField.GetMostCommonCatSprite() ??
+                                       BlockBlastSpriteLibrary.GetRandomCatBlockSprite();
             foreach (BlockPiece piece in _pieces)
             {
                 BlockShape shape = _installableShapes[Random.Range(0, _installableShapes.Count)];
                 Color color = _colors[Random.Range(0, _colors.Length)];
-                Sprite catSprite = BlockBlastSpriteLibrary.GetRandomCatBlockSprite();
+                Sprite catSprite = Random.value < FeaturedCatChance
+                    ? featuredCatSprite
+                    : BlockBlastSpriteLibrary.GetRandomCatBlockSprite();
 
                 piece.Configure(shape, color, catSprite);
             }
 
             return true;
+        }
+
+        private void GiveTutorialSet(IReadOnlyList<string> shapeNames)
+        {
+            Sprite tutorialCatSprite = BlockBlastSpriteLibrary.CatBlockSprite;
+
+            for (int i = 0; i < _pieces.Length; i++)
+            {
+                string shapeName = i < shapeNames.Count
+                    ? shapeNames[i]
+                    : "Single";
+                BlockShape shape = FindShape(shapeName) ?? FindShape("Single");
+                _pieces[i].Configure(shape, Color.white, tutorialCatSprite);
+            }
+        }
+
+        private static BlockShape FindShape(string shapeName)
+        {
+            foreach (BlockShape shape in BlockShapeCatalog.Shapes)
+            {
+                if (shape.Name == shapeName)
+                    return shape;
+            }
+
+            return null;
         }
 
         public bool AreAllPiecesPlaced()
@@ -86,6 +141,63 @@ namespace _Code.Manager
             }
 
             return false;
+        }
+
+        public void HighlightUnplaceablePieces(BlockField blockField)
+        {
+            if (_pieces == null)
+                return;
+
+            foreach (BlockPiece piece in _pieces)
+            {
+                if (piece == null || piece.IsPlaced)
+                    continue;
+
+                bool canPlace = blockField != null && blockField.HasAnyPlacement(piece);
+                piece.SetPlacementBlockedHighlight(!canPlace);
+            }
+        }
+
+        public void ClearPlacementHighlights()
+        {
+            if (_pieces == null)
+                return;
+
+            foreach (BlockPiece piece in _pieces)
+            {
+                if (piece != null)
+                    piece.SetPlacementBlockedHighlight(false);
+            }
+        }
+
+        public IEnumerator PlayUnplaceablePiecesAnimation(BlockField blockField)
+        {
+            if (_pieces == null || blockField == null)
+                yield break;
+
+            List<BlockPiece> unplaceablePieces = new List<BlockPiece>(_pieces.Length);
+            foreach (BlockPiece piece in _pieces)
+            {
+                if (piece != null && !piece.IsPlaced && !blockField.HasAnyPlacement(piece))
+                    unplaceablePieces.Add(piece);
+            }
+
+            if (unplaceablePieces.Count == 0)
+                yield break;
+
+            Vector2Int centerPoint = new Vector2Int(blockField.Width / 2, blockField.Height / 2);
+            Vector3 centerPosition = blockField.GetWorldPosition(centerPoint);
+            const float staggerDelay = 0.07f;
+
+            for (int i = 0; i < unplaceablePieces.Count; i++)
+            {
+                BlockPiece piece = unplaceablePieces[i];
+                StartCoroutine(piece.PlayPlacementBlockedAnimation(centerPosition, i * staggerDelay));
+            }
+
+            float totalDuration = BlockPiece.PlacementBlockedAnimationDuration +
+                                  (unplaceablePieces.Count - 1) * staggerDelay;
+            yield return new WaitForSecondsRealtime(totalDuration);
         }
 
         public bool CanPlaceAllRemainingPieces(BlockField blockField)

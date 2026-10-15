@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: BackGround
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: BackGround
+  m_GUID: 1b89ab64c5930ac438c577f6c4657be7
+  m_SerializeEntries:
+  - m_GUID: 16993d0d77e0407e99f9b58bf9a9b6fc
+    m_Address: BackGround/CleanHomeBackGround
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - BackGround
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 4b8fae4bca7224047bd2bbeccacf0ee9
+    m_Address: BackGround/BasicBackGround
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - BackGround
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 80ddef7a613e416a96f74d1b58fd7606
+    m_Address: BackGround/NightCatHome
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - BackGround
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 2a16b88be7162584c93c47281209d1a0, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 7f7d08464fb980d44a46931262318d58, type: 2}
+    - {fileID: 11400000, guid: fe31ac98cdaf1764f8ed51a914b1be83, type: 2}

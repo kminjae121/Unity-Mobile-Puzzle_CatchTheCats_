@@ -1,5 +1,7 @@
+using System.Collections;
 using System.Collections.Generic;
 using _Code.Block;
+using _Code.CatHome;
 using _Code.Field;
 using TMPro;
 using UnityEngine;
@@ -10,13 +12,15 @@ namespace _Code.Manager
 {
     public sealed class TutorialController : MonoBehaviour
     {
-        private const string TutorialCompletedKey = "CatchTheCats.MouseMoveTutorial.Completed.v4";
+        private const string TutorialCompletedKey = "CatchTheCats.MouseMoveTutorial.Completed.v5";
 
         private enum StepKind
         {
             Message,
             WaitForShift,
             WaitForPiecePlaced,
+            WaitForMatchingLineClear,
+            WaitForIndividualSplit,
             Finish
         }
 
@@ -30,10 +34,10 @@ namespace _Code.Manager
         [SerializeField] private Color guideColor = new Color(1f, 0.78f, 0.18f, 1f);
         [SerializeField] private Color guideShadowColor = new Color(0.43f, 0.21f, 0.08f, 0.72f);
         [SerializeField, Min(4f)] private float guideLineWidth = 12f;
-        [SerializeField, Min(18f)] private float guidePointerSize = 46f;
+        [SerializeField, Min(18f)] private float guidePointerSize = 112f;
         [SerializeField, Min(2f)] private float guideFocusThickness = 6f;
         [SerializeField, Min(0f)] private float guideFocusPadding = 12f;
-        [SerializeField, Min(0.1f)] private float guideAnimationSpeed = 1.35f;
+        [SerializeField, Min(0.1f)] private float guideAnimationSpeed = 0.675f;
 
         private readonly List<TutorialStep> _steps = new List<TutorialStep>();
         private readonly List<FocusBox> _focusBoxes = new List<FocusBox>();
@@ -63,13 +67,19 @@ namespace _Code.Manager
         private BlockField _blockField;
         private MouseView _mouse;
         private BlockPiece[] _pieces;
+        private PlayerProgressController _playerProgressController;
+        private CatHomeGrowthController _catHomeGrowthController;
+        private Coroutine _tutorialResetRoutine;
         private Camera _worldCamera;
         private Sprite _guidePointerSprite;
         private Sprite _speechBubbleSprite;
         private Texture2D _speechBubbleTexture;
+        private bool _fieldEventsSubscribed;
 
         public bool HasPriorityMessage => _isRunning;
         public bool IsGameplayInputLocked => _isRunning && !_isMissionActive;
+        public bool ShouldStartAutomatically =>
+            showFirstRunTutorial && PlayerPrefs.GetInt(TutorialCompletedKey, 0) != 1;
 
         private void Awake()
         {
@@ -91,18 +101,39 @@ namespace _Code.Manager
             ClearMessage();
         }
 
+        private void OnDestroy()
+        {
+            UnsubscribeFromFieldEvents();
+            if (_tutorialResetRoutine != null)
+                StopCoroutine(_tutorialResetRoutine);
+        }
+
         public void Configure(TextMeshProUGUI messageText)
         {
-            Configure(messageText, _blockField, _mouse, _pieces);
+            Configure(messageText, _blockField, _mouse, _pieces, _playerProgressController, _catHomeGrowthController);
         }
 
         public void Configure(TextMeshProUGUI messageText, BlockField blockField, MouseView mouse, BlockPiece[] pieces)
         {
+            Configure(messageText, blockField, mouse, pieces, _playerProgressController, _catHomeGrowthController);
+        }
+
+        public void Configure(
+            TextMeshProUGUI messageText,
+            BlockField blockField,
+            MouseView mouse,
+            BlockPiece[] pieces,
+            PlayerProgressController playerProgressController,
+            CatHomeGrowthController catHomeGrowthController)
+        {
             if (this.messageText == null)
                 this.messageText = messageText;
 
-            if (_blockField == null)
+            if (blockField != null && _blockField != blockField)
+            {
+                UnsubscribeFromFieldEvents();
                 _blockField = blockField;
+            }
 
             if (_mouse == null)
                 _mouse = mouse;
@@ -110,8 +141,36 @@ namespace _Code.Manager
             if (_pieces == null || _pieces.Length == 0)
                 _pieces = pieces;
 
+            if (_playerProgressController == null)
+                _playerProgressController = playerProgressController;
+
+            if (_catHomeGrowthController == null)
+                _catHomeGrowthController = catHomeGrowthController;
+
+            SubscribeToFieldEvents();
+
             EnsureView();
             HideView();
+        }
+
+        private void SubscribeToFieldEvents()
+        {
+            if (_fieldEventsSubscribed || _blockField == null)
+                return;
+
+            _blockField.MatchingCatLinesCleared += HandleMatchingCatLinesCleared;
+            _blockField.SingleCellBlocksCreated += HandleSingleCellBlocksCreated;
+            _fieldEventsSubscribed = true;
+        }
+
+        private void UnsubscribeFromFieldEvents()
+        {
+            if (!_fieldEventsSubscribed || _blockField == null)
+                return;
+
+            _blockField.MatchingCatLinesCleared -= HandleMatchingCatLinesCleared;
+            _blockField.SingleCellBlocksCreated -= HandleSingleCellBlocksCreated;
+            _fieldEventsSubscribed = false;
         }
 
         public bool TryBegin(bool isStageMode)
@@ -162,6 +221,22 @@ namespace _Code.Manager
             AdvanceStep();
         }
 
+        private void HandleMatchingCatLinesCleared(IReadOnlyList<Sprite> matchingSprites)
+        {
+            if (!_isRunning || !_isMissionActive || CurrentStep.Kind != StepKind.WaitForMatchingLineClear)
+                return;
+
+            AdvanceStep();
+        }
+
+        private void HandleSingleCellBlocksCreated()
+        {
+            if (!_isRunning || !_isMissionActive || CurrentStep.Kind != StepKind.WaitForIndividualSplit)
+                return;
+
+            Complete();
+        }
+
         public bool CanShiftBoard()
         {
             if (!_isRunning || _steps.Count == 0)
@@ -185,8 +260,12 @@ namespace _Code.Manager
             if (!_isRunning || _steps.Count == 0)
                 return true;
 
+            bool acceptsPiecePlacement = CurrentStep.Kind == StepKind.WaitForPiecePlaced ||
+                                         CurrentStep.Kind == StepKind.WaitForMatchingLineClear ||
+                                         CurrentStep.Kind == StepKind.WaitForIndividualSplit;
+
             return !IsGameplayInputLocked &&
-                   CurrentStep.Kind == StepKind.WaitForPiecePlaced &&
+                   acceptsPiecePlacement &&
                    piece != null &&
                    !piece.IsPlaced;
         }
@@ -243,6 +322,7 @@ namespace _Code.Manager
 
         private void Complete()
         {
+            ScheduleTutorialRunStateReset();
             PlayerPrefs.SetInt(TutorialCompletedKey, 1);
             PlayerPrefs.Save();
 
@@ -253,6 +333,7 @@ namespace _Code.Manager
 
         private void Close()
         {
+            ResetTutorialRunState();
             if (!_isManualRun)
             {
                 PlayerPrefs.SetInt(TutorialCompletedKey, 1);
@@ -262,6 +343,27 @@ namespace _Code.Manager
             _isRunning = false;
             HideView();
             ClearMessage();
+        }
+
+        private void ResetTutorialRunState()
+        {
+            _playerProgressController?.ResetCurrentScore();
+            _catHomeGrowthController?.ResetGrowthForTutorial();
+        }
+
+        private void ScheduleTutorialRunStateReset()
+        {
+            if (_tutorialResetRoutine != null)
+                StopCoroutine(_tutorialResetRoutine);
+
+            _tutorialResetRoutine = StartCoroutine(ResetTutorialRunStateAtEndOfFrame());
+        }
+
+        private IEnumerator ResetTutorialRunStateAtEndOfFrame()
+        {
+            yield return new WaitForEndOfFrame();
+            ResetTutorialRunState();
+            _tutorialResetRoutine = null;
         }
 
         private void ShowCurrentStep()
@@ -306,7 +408,12 @@ namespace _Code.Manager
                 return;
 
             StepKind stepKind = CurrentStep.Kind;
-            if (stepKind != StepKind.WaitForShift && stepKind != StepKind.WaitForPiecePlaced)
+            bool isActionStep = stepKind == StepKind.WaitForShift ||
+                                stepKind == StepKind.WaitForPiecePlaced ||
+                                stepKind == StepKind.WaitForMatchingLineClear ||
+                                stepKind == StepKind.WaitForIndividualSplit;
+
+            if (!isActionStep)
             {
                 AdvanceStep();
                 return;
@@ -336,7 +443,10 @@ namespace _Code.Manager
             if (stepKind == StepKind.Finish)
                 return "터치해서 끝내기";
 
-            if (stepKind == StepKind.WaitForShift || stepKind == StepKind.WaitForPiecePlaced)
+            if (stepKind == StepKind.WaitForShift ||
+                stepKind == StepKind.WaitForPiecePlaced ||
+                stepKind == StepKind.WaitForMatchingLineClear ||
+                stepKind == StepKind.WaitForIndividualSplit)
                 return "터치해서 임무 시작";
 
             return "터치해서 계속";
@@ -357,6 +467,12 @@ namespace _Code.Manager
 
             if (step.Kind == StepKind.WaitForPiecePlaced)
                 return "먼저 고양이 블럭을 놓아볼게요.";
+
+            if (step.Kind == StepKind.WaitForMatchingLineClear)
+                return "같은 색 고양이로 한 줄을 완성해볼게요.";
+
+            if (step.Kind == StepKind.WaitForIndividualSplit)
+                return "블럭의 일부만 줄에 걸치도록 놓아볼게요.";
 
             if (step.Kind == StepKind.WaitForShift)
                 return $"{DirectionToKorean(step.Direction)} 방향으로만 밀어볼게요.";
@@ -580,6 +696,10 @@ namespace _Code.Manager
             _guideHeadText = CreateGuideText(_guideRootRect, "TutorialSwipeArrowHead", ">", 72f, guideColor);
             _guidePointer = CreateGuideImage(_guideRootRect, "TutorialSwipePointer", Color.white);
             _guidePointer.sprite = GetGuidePointerSprite();
+            _guidePointer.preserveAspect = true;
+            _guidePointer.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+            _guidePointer.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            _guidePointer.rectTransform.pivot = new Vector2(0.5f, 0.5f);
             _guidePointer.rectTransform.sizeDelta = Vector2.one * guidePointerSize;
 
             HideGuide();
@@ -628,7 +748,9 @@ namespace _Code.Manager
                 return;
             }
 
-            if (step.Kind == StepKind.WaitForPiecePlaced)
+            if (step.Kind == StepKind.WaitForPiecePlaced ||
+                step.Kind == StepKind.WaitForMatchingLineClear ||
+                step.Kind == StepKind.WaitForIndividualSplit)
                 ShowPlacementGuide();
         }
 
@@ -687,6 +809,14 @@ namespace _Code.Manager
             if (_blockField == null || _pieces == null)
                 return false;
 
+            if (CurrentStep.Kind == StepKind.WaitForMatchingLineClear &&
+                TryFindLinePlacementGuide(false, out pieceWorldPosition, out targetWorldPosition))
+                return true;
+
+            if (CurrentStep.Kind == StepKind.WaitForIndividualSplit &&
+                TryFindLinePlacementGuide(true, out pieceWorldPosition, out targetWorldPosition))
+                return true;
+
             foreach (BlockPiece piece in _pieces)
             {
                 if (piece == null || piece.IsPlaced || !piece.gameObject.activeInHierarchy)
@@ -715,6 +845,163 @@ namespace _Code.Manager
                         return true;
                     }
                 }
+            }
+
+            return false;
+        }
+
+        private bool TryFindLinePlacementGuide(
+            bool requirePartialPiece,
+            out Vector3 pieceWorldPosition,
+            out Vector3 targetWorldPosition)
+        {
+            pieceWorldPosition = Vector3.zero;
+            targetWorldPosition = Vector3.zero;
+
+            foreach (BlockPiece piece in _pieces)
+            {
+                if (piece == null || piece.IsPlaced || !piece.gameObject.activeInHierarchy)
+                    continue;
+
+                for (int y = _blockField.Height - 1; y >= 0; y--)
+                {
+                    for (int x = 0; x < _blockField.Width; x++)
+                    {
+                        Vector2Int anchor = new Vector2Int(x, y);
+
+                        if (!_blockField.CanInstall(piece, anchor))
+                            continue;
+
+                        if (!TryFindMatchingLine(piece, anchor, requirePartialPiece, out List<Vector2Int> linePoints))
+                            continue;
+
+                        pieceWorldPosition = piece.transform.position;
+                        Vector3 total = Vector3.zero;
+                        _placementTargetPositions.Clear();
+
+                        foreach (Vector2Int cell in piece.Cells)
+                        {
+                            Vector3 cellWorldPosition = _blockField.GetWorldPosition(anchor + cell);
+                            _placementTargetPositions.Add(cellWorldPosition);
+                            total += cellWorldPosition;
+                        }
+
+                        foreach (Vector2Int point in linePoints)
+                        {
+                            Vector3 lineWorldPosition = _blockField.GetWorldPosition(point);
+                            _placementTargetPositions.Add(lineWorldPosition);
+                        }
+
+                        targetWorldPosition = total / Mathf.Max(1, piece.Cells.Count);
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private bool TryFindMatchingLine(
+            BlockPiece piece,
+            Vector2Int anchor,
+            bool requirePartialPiece,
+            out List<Vector2Int> matchingLine)
+        {
+            matchingLine = null;
+            Sprite targetSprite = piece.BlockSprite;
+
+            for (int y = 0; y < _blockField.Height; y++)
+            {
+                if (IsMatchingLine(piece, anchor, targetSprite, Vector2Int.right, new Vector2Int(0, y), _blockField.Width, requirePartialPiece))
+                {
+                    matchingLine = new List<Vector2Int>(_blockField.Width);
+                    for (int x = 0; x < _blockField.Width; x++)
+                        matchingLine.Add(new Vector2Int(x, y));
+                    return true;
+                }
+            }
+
+            for (int x = 0; x < _blockField.Width; x++)
+            {
+                if (IsMatchingLine(piece, anchor, targetSprite, Vector2Int.up, new Vector2Int(x, 0), _blockField.Height, requirePartialPiece))
+                {
+                    matchingLine = new List<Vector2Int>(_blockField.Height);
+                    for (int y = 0; y < _blockField.Height; y++)
+                        matchingLine.Add(new Vector2Int(x, y));
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool IsMatchingLine(
+            BlockPiece piece,
+            Vector2Int anchor,
+            Sprite targetSprite,
+            Vector2Int step,
+            Vector2Int start,
+            int length,
+            bool requirePartialPiece)
+        {
+            bool hasPieceCellOnLine = false;
+            bool hasPieceCellOffLine = false;
+
+            foreach (Vector2Int pieceCell in piece.Cells)
+            {
+                Vector2Int point = anchor + pieceCell;
+                bool isOnLine = IsPointOnLine(point, start, step, length);
+
+                if (isOnLine)
+                    hasPieceCellOnLine = true;
+                else
+                    hasPieceCellOffLine = true;
+            }
+
+            if (!hasPieceCellOnLine || (requirePartialPiece && !hasPieceCellOffLine))
+                return false;
+
+            for (int i = 0; i < length; i++)
+            {
+                Vector2Int point = start + step * i;
+                if (!_blockField.TryGetField(point, out _Code.Field.Field field))
+                    return false;
+
+                if (TryGetPieceCellAtPoint(piece, anchor, point, out _))
+                {
+                    if (piece.BlockSprite != targetSprite)
+                        return false;
+                    continue;
+                }
+
+                if (field.IsEmpty || field.IsStageCheese || field.CurrentSprite != targetSprite)
+                    return false;
+            }
+
+            return true;
+        }
+
+        private static bool TryGetPieceCellAtPoint(BlockPiece piece, Vector2Int anchor, Vector2Int point, out Vector2Int pieceCell)
+        {
+            for (int i = 0; i < piece.Cells.Count; i++)
+            {
+                if (anchor + piece.Cells[i] != point)
+                    continue;
+
+                pieceCell = piece.Cells[i];
+                return true;
+            }
+
+            pieceCell = default;
+            return false;
+        }
+
+        private static bool IsPointOnLine(Vector2Int point, Vector2Int start, Vector2Int step, int length)
+        {
+            for (int i = 0; i < length; i++)
+            {
+                if (start + step * i == point)
+                    return true;
             }
 
             return false;
@@ -758,7 +1045,8 @@ namespace _Code.Manager
             if (!_guideVisible || _guidePointer == null)
                 return;
 
-            float travel = Mathf.PingPong(Time.unscaledTime * guideAnimationSpeed, 1f);
+            // Play a one-way swipe, then restart at the beginning for a clear repeating gesture.
+            float travel = Mathf.Repeat(Time.unscaledTime * guideAnimationSpeed, 1f);
             float easedTravel = Mathf.SmoothStep(0f, 1f, travel);
             RectTransform pointerRect = _guidePointer.rectTransform;
             pointerRect.anchoredPosition = Vector2.Lerp(_guideStartLocal, _guideEndLocal, easedTravel);
@@ -823,29 +1111,10 @@ namespace _Code.Manager
             if (_guidePointerSprite != null)
                 return _guidePointerSprite;
 
-            const int textureSize = 64;
-            Texture2D texture = new Texture2D(textureSize, textureSize, TextureFormat.RGBA32, false)
-            {
-                name = "TutorialGuidePointer",
-                filterMode = FilterMode.Bilinear,
-                wrapMode = TextureWrapMode.Clamp
-            };
+            _guidePointerSprite = Resources.Load<Sprite>("BlockBlast/fingerSprite");
+            if (_guidePointerSprite == null)
+                Debug.LogWarning("Tutorial swipe pointer sprite was not found at Resources/BlockBlast/fingerSprite.", this);
 
-            Vector2 center = new Vector2((textureSize - 1) * 0.5f, (textureSize - 1) * 0.5f);
-            float radius = textureSize * 0.42f;
-
-            for (int y = 0; y < textureSize; y++)
-            {
-                for (int x = 0; x < textureSize; x++)
-                {
-                    float distance = Vector2.Distance(new Vector2(x, y), center);
-                    float alpha = Mathf.Clamp01(radius - distance);
-                    texture.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
-                }
-            }
-
-            texture.Apply();
-            _guidePointerSprite = Sprite.Create(texture, new Rect(0f, 0f, textureSize, textureSize), new Vector2(0.5f, 0.5f), textureSize);
             return _guidePointerSprite;
         }
 
@@ -901,58 +1170,58 @@ namespace _Code.Manager
 
             _steps.Add(new TutorialStep(
                 "고양이 배치",
-                "먼저 아래 고양이 블럭을 잡고 노란 칸에 맞춰 놓아보세요.",
+                "먼저 아래 <b><color=#8A3D25>고양이 블럭</color></b>을 잡고 <b><color=#C47A12>노란 칸</color></b>에 맞춰 놓아보세요.",
                 "고양이 놓기",
                 StepKind.WaitForPiecePlaced,
                 Vector2Int.zero));
 
             _steps.Add(new TutorialStep(
                 "쥐 이동하기",
-                "이제 화면을 밀면 쥐가 쥐구멍 사이를 이동하고, 고양이 블럭들도 모양 그대로 같은 방향으로 밀려요. 스와이프로 줄을 지우면 점수를 2배로 얻어요.",
+                "이제 화면을 <b><color=#8A3D25>스와이프</color></b>하면 쥐가 쥐구멍 사이를 이동하고, 고양이 블럭들도 모양 그대로 같은 방향으로 밀려요. <b><color=#C47A12>스와이프로 줄을 지우면 점수가 2배!</color></b>\n<b><color=#8A3D25>놓을 곳이 없으면 먼저 스와이프로 공간을 만들고, 그래도 놓을 곳이 없으면 게임 오버예요.</color></b>",
                 "쥐를 움직여볼까요?",
                 StepKind.Message,
                 Vector2Int.zero));
 
             _steps.Add(new TutorialStep(
                 "오른쪽으로 밀기",
-                "노란 화살표처럼 오른쪽으로 스와이프해 쥐를 이동시켜봐요.",
+                "노란 화살표처럼 <b><color=#C47A12>오른쪽으로 스와이프</color></b>해 쥐를 이동시켜봐요.",
                 "오른쪽으로 밀기",
                 StepKind.WaitForShift,
                 Vector2Int.right));
 
             _steps.Add(new TutorialStep(
                 "아래로 내려가기",
-                "이번에는 아래로 스와이프해서 아래 쥐구멍으로 이동해요.",
+                "이번에는 <b><color=#C47A12>아래로 스와이프</color></b>해서 아래 쥐구멍으로 이동해요.",
                 "아래로 밀기",
                 StepKind.WaitForShift,
                 Vector2Int.down));
 
             _steps.Add(new TutorialStep(
                 "왼쪽으로 밀기",
-                "왼쪽으로 스와이프하면 고양이 블럭들이 같이 정리돼요.",
+                "<b><color=#C47A12>왼쪽으로 스와이프</color></b>하면 고양이 블럭들이 같이 정리돼요.",
                 "왼쪽으로 밀기",
                 StepKind.WaitForShift,
                 Vector2Int.left));
 
             _steps.Add(new TutorialStep(
                 "다시 위로",
-                "마지막으로 위로 스와이프해서 쥐를 위쪽 쥐구멍으로 보내요.",
+                "마지막으로 <b><color=#C47A12>위로 스와이프</color></b>해서 쥐를 위쪽 쥐구멍으로 보내요.",
                 "위로 밀기",
                 StepKind.WaitForShift,
                 Vector2Int.up));
 
             _steps.Add(new TutorialStep(
                 "고양이 성장",
-                "같은 고양이로만 줄을 지우면 고양이가 자라고 3번 지우면 성체가 돼요.",
+                "<b><color=#8A3D25>같은 고양이로만 한 줄</color></b>을 지우면 그 색 고양이가 <b><color=#C47A12>자라요!</color></b> 같은 고양이를 모아 한 줄을 완성해볼게요.",
                 "고양이를 키워봐요!",
-                StepKind.Message,
+                StepKind.WaitForMatchingLineClear,
                 Vector2Int.zero));
 
             _steps.Add(new TutorialStep(
-                "준비 완료",
-                "좋아요! 이제 고양이 블럭으로 가로줄이나 세로줄을 가득 채워 점수를 얻어봐요.",
-                "튜토리얼 완료",
-                StepKind.Finish,
+                "개별 판정",
+                "블럭의 일부만 줄에서 지워지면 남은 고양이 블럭은 하나씩 따로 판정돼요.\n<b>원래는 블럭 단위로 움직이지만, 단일 객체가 되면 혼자 움직여요.\n단일 객체가 되면 아웃라인이 생겨 쉽게 구분할 수 있어요.</b>\n이제 가로나 세로줄을 채워 점수를 얻어보세요.",
+                "블럭 일부를 지워봐요!",
+                StepKind.WaitForIndividualSplit,
                 Vector2Int.zero));
         }
 
